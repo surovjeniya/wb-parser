@@ -24,9 +24,9 @@ export class WildberriesService {
   }
 
   createSessinsDir() {
-    if (!fs.existsSync(path.join(__dirname, 'sessions')))
-      fs.mkdirSync(path.join(__dirname, 'sessions'));
-    return path.join(__dirname, 'sessions');
+    if (!fs.existsSync(path.join(__dirname, '..', '..', 'sessions')))
+      fs.mkdirSync(path.join(__dirname, '..', '..', 'sessions'));
+    return path.join(__dirname, '..', '..', 'sessions');
   }
 
   async changeShop(shop_id?: string, shop_name?: string) {
@@ -36,7 +36,7 @@ export class WildberriesService {
         headless: 'new',
         ignoreHTTPSErrors: true,
         userDataDir: sessionsDir,
-        // // executablePath: '/usr/bin/chromium-browser',
+        executablePath: '/usr/bin/chromium-browser',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -72,10 +72,10 @@ export class WildberriesService {
     try {
       const sessionsDir = this.createSessinsDir();
       const browser = await puppeteer.launch({
-        headless: false,
+        headless: 'new',
         ignoreHTTPSErrors: true,
         userDataDir: sessionsDir,
-        // // executablePath: '/usr/bin/chromium-browser',
+        executablePath: '/usr/bin/chromium-browser',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -108,7 +108,7 @@ export class WildberriesService {
       });
 
       await page.click('input[inputmode="numeric"]', { delay: 500 });
-      await this.delay(10000);
+      await this.delay(15000);
 
       for await (const c of this.code) {
         console.log(c);

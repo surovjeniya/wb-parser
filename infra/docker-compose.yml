@@ -1,0 +1,44 @@
+version: '3.7'
+
+volumes:
+  downloads:
+    name: $INFRA_DOWNLOADS_VOLUME
+    driver: local
+  sessions:
+    name: $INFRA_SESSIONS_VOLUME
+    driver: local
+
+networks:
+  infra:
+    name: $INFRA_NETWORK
+    driver: bridge
+
+services:
+  nginx-service:
+    container_name: $INFRA_NGINX_APP
+    image: $INFRA_NGINX_IMAGE
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    build:
+      context: ../nginx
+      dockerfile: Dockerfile
+    networks: 
+      - infra
+      
+  parser-service:
+    container_name: $INFRA_PARSER_APP
+    image: $INRA_PARSER_IMAGE
+    restart: unless-stopped
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+      target: production
+    depends_on:
+      - nginx-service
+    networks: 
+      - infra
+    volumes:
+      - downloads:/usr/src/app/downloads
+    #   - sessions:/usr/src/app/sessions
