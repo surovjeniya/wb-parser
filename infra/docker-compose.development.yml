@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:
+  parser-api-service:
+    build: 
+      context: ../app
+      target: development
+    command: npm run start:dev
+    volumes:
+      - ../app:/usr/src/app
+    env_file:
+      - ../app/envs/.development.env

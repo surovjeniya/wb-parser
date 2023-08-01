@@ -1,0 +1,32 @@
+version: '3.7'
+
+volumes:
+  downloads:
+    name: $INFRA_DOWNLOADS_VOLUME
+    driver: local
+    
+networks:
+  infra:
+    name: $INFRA_NETWORK
+    driver: bridge
+
+services:
+  parser-api-service:
+    # platform: linux/arm64
+    image: $INFRA_PARSER_API_IMAGE
+    container_name: $INFRA_PARSER_API_APP
+    build: 
+      context: ../app
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    networks:
+      - infra
+    volumes:
+      - downloads:/usr/src/app/downloads
+    env_file:
+      - ../app/envs/.production.env
+    ports:
+      - "3000:3000"
+
+  

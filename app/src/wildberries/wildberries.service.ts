@@ -6,6 +6,10 @@ import { log } from 'console';
 import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * @type {import("puppeteer").Configuration}
+ */
+
 @Injectable()
 export class WildberriesService {
   private readonly logger = new Logger(WildberriesService.name);
@@ -23,6 +27,7 @@ export class WildberriesService {
       headless: 'new',
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
+
       executablePath: this.configService.get('PUPPETEER_EXECUTABLE_PATH'),
       args: [
         '--no-sandbox',
