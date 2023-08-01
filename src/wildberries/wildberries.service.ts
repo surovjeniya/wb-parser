@@ -1,13 +1,29 @@
-import { Injectable, Logger } from '@nestjs/common';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
+import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
-import { log } from 'console';
 import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import * as decompress from 'decompress';
+import xlsx from 'node-xlsx';
 
 @Injectable()
 export class WildberriesService {
+  private readonly sessions_dir = path.join(__dirname, 'sessions');
+  private readonly downloads_dir = path.join(
+    __dirname,
+    '..',
+    '..',
+    'downloads',
+  );
+  private readonly port = this.configService.get('PORT');
+  private readonly host_name = this.configService.get('HOST_NAME');
+  private code = null;
   private readonly logger = new Logger(WildberriesService.name);
   constructor(private readonly configService: ConfigService) {}
 
@@ -15,15 +31,12 @@ export class WildberriesService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private code = null;
-
   async start(): Promise<Browser> {
     const sessionsDir = this.createSessinsDir();
     const browser = await puppeteer.launch({
       headless: 'new',
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
-      executablePath: this.configService.get('PUPPETEER_EXECUTABLE_PATH'),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -38,9 +51,8 @@ export class WildberriesService {
   }
 
   createDonwloadsDir(): string {
-    if (!fs.existsSync(path.join(__dirname, '..', '..', 'downloads')))
-      fs.mkdirSync(path.join(__dirname, '..', '..', 'downloads'));
-    return path.join(__dirname, '..', '..', 'downloads');
+    if (!fs.existsSync(this.downloads_dir)) fs.mkdirSync(this.downloads_dir);
+    return this.downloads_dir;
   }
 
   createSessinsDir(): string {
@@ -52,24 +64,29 @@ export class WildberriesService {
   async changeShop(shop_id?: string, shop_name?: string): Promise<Page> {
     const browser = await this.start();
     const page = await browser.newPage();
-
     await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
-    await page.waitForSelector('.ProfileView');
+    await page.waitForSelector('.ProfileView').catch((error) => {
+      this.logger.error('changeShop', error.message);
+      throw new InternalServerErrorException('Profile selector waiting error.');
+    });
     await page.click('.ProfileView', { delay: 300 });
     await this.delay(3000);
     const linkHandlers = await page.$x(
       `//span[contains(text(), "${shop_name}")]`,
     );
-    log(linkHandlers.length);
     //@ts-ignore
     linkHandlers.length && (await linkHandlers[0].click());
     await this.delay(1000);
     return page;
   }
 
-  async sendPhoneNumber(phone_number: string): Promise<string> {
+  async sendPhoneNumber(
+    phone_number: string,
+  ): Promise<string | UnauthorizedException> {
+    if (fs.existsSync(this.sessions_dir))
+      await fs.promises.rm(this.sessions_dir, { recursive: true });
     const browser = await this.start();
-    const page = await browser.newPage();
+    const page: Page = await browser.newPage();
     await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
     await page.click(
       'img[src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMTAiIGZpbGw9IiMwMDM5QTUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC4wODY1IDE5Ljk5OTZIOS45MTM1QzkuOTQyMyAxOS45OTk5IDkuOTcxMTMgMjAgOS45OTk5OSAyMEMxMC4wMjg4IDIwIDEwLjA1NzcgMTkuOTk5OSAxMC4wODY1IDE5Ljk5OTZaTTE5LjUzMTIgNi45NjUzM0gwLjQ2ODc1QzEuNzUzNjcgMi45MjYxNCA1LjUzNTExIDAgOS45OTk5OSAwQzE0LjQ2NDkgMCAxOC4yNDYzIDIuOTI2MTQgMTkuNTMxMiA2Ljk2NTMzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ0MTQwNiAxMi45NDI0QzEuNjk3NjkgMTcuMDI5MyA1LjUwMjY5IDIwLjAwMDIgMTAuMDAxNiAyMC4wMDAyQzE0LjUwMDUgMjAuMDAwMiAxOC4zMDU1IDE3LjAyOTMgMTkuNTYxNyAxMi45NDI0SDAuNDQxNDA2WiIgZmlsbD0iI0Q1MkExRCIvPgo8L3N2Zz4K"]',
@@ -92,19 +109,60 @@ export class WildberriesService {
 
     await page.click('input[inputmode="numeric"]', { delay: 500 });
     await this.delay(15000);
+    if (this.code && this.code.length) {
+      for await (const c of this.code) {
+        console.log(c);
 
-    for await (const c of this.code) {
-      console.log(c);
-
-      await page.keyboard.press(c, { delay: 200 });
+        await page.keyboard.press(c, { delay: 200 });
+      }
+      const content = await page.content();
+      await browser.close();
+      return content;
+    } else {
+      throw new UnauthorizedException(
+        'Code is empty. Input time is 15 seconds.Try signin again.',
+      );
     }
-    const content = await page.content();
-    await browser.close();
-    return content;
   }
 
-  async sendCode(code: string): Promise<void> {
+  async sendCode(code: string): Promise<string> {
     this.code = code;
+    return this.code;
+  }
+
+  async parseXlsx(
+    fileName: string,
+    dir: string,
+  ): Promise<
+    {
+      name: string;
+      data: any[][];
+    }[]
+  > {
+    const fileData = fs.readFileSync(
+      path.join(this.downloads_dir, dir, fileName),
+    );
+    const parsedData = xlsx.parse(fileData);
+    return parsedData;
+  }
+
+  async unzipFile(
+    dir: string,
+    fileName: string,
+  ): Promise<decompress.File[] | InternalServerErrorException> {
+    const filePath = path.join(this.downloads_dir, dir, fileName);
+    const decompresssed = await decompress(
+      filePath,
+      path.join(this.downloads_dir, dir),
+    ).catch((error) => {
+      this.logger.error('unzipFile', error.message);
+      throw new InternalServerErrorException('Zip unpacked error.');
+    });
+    await fs.promises.unlink(filePath).catch((error) => {
+      this.logger.error('unzipFile', error.message);
+      throw new InternalServerErrorException('Zip unlink error.');
+    });
+    return decompresssed;
   }
 
   async gotoFourteenOrder(
@@ -159,7 +217,15 @@ export class WildberriesService {
     shop_name: string,
     start_date: string,
     end_date: string,
-  ): Promise<string> {
+    parse_xlsx?: boolean,
+  ): Promise<
+    | string
+    | {
+        name: string;
+        data: any[][];
+      }[]
+    | InternalServerErrorException
+  > {
     const uuid = v4();
     const downloadsDir = `${this.createDonwloadsDir()}/${uuid}`;
     const page = await this.gotoFourteenOrder(shop_name, start_date, end_date);
@@ -182,8 +248,86 @@ export class WildberriesService {
       withFileTypes: true,
     });
     await page.browser().close();
-    return `${this.configService.get('HOST_NAME')}:${this.configService.get(
-      'PORT',
-    )}/${uuid}/${files[0].name}`;
+    const xlsxFile = await this.unzipFile(uuid, files[0].name);
+    const fileName = xlsxFile[0].path;
+    if (parse_xlsx) {
+      const parsedData = await this.parseXlsx(fileName, uuid).catch((error) => {
+        this.logger.error('downloadFourteenOrder', error.message);
+        throw new InternalServerErrorException('XLSX parse error.');
+      });
+      return parsedData;
+    } else {
+      const fileLink = `${this.host_name}:${this.port}/${uuid}/${fileName}`;
+      return fileLink;
+    }
+  }
+
+  async goToAdverts(shop_name: string) {
+    const page = await this.changeShop('15', shop_name);
+    await this.delay(1000);
+    await page.goto('https://cmp.wildberries.ru/campaigns/list/active');
+    await page.waitForSelector('h1');
+    await this.delay(2000);
+    return page;
+  }
+
+  async searchAdvertCompany(
+    advertId: string,
+    shop_name: string,
+    start_date: string,
+    end_date: string,
+  ) {
+    try {
+      const uuid = v4();
+      const downloadsDir = `${this.createDonwloadsDir()}/${uuid}/adverts-order`;
+      const page = await this.changeShop('15', shop_name);
+      await page.goto(`https://cmp.wildberries.ru/statistics/${advertId}`);
+      await this.delay(5000);
+      await page.click('.icon__calendar', { delay: 100 });
+      await this.delay(1000);
+      const dateInputs = await page.$$('.date-picker__period-calendar__input');
+
+      await dateInputs[0].click({ count: 3 });
+      await page.keyboard.press('Backspace');
+      await dateInputs[0].type(start_date, { delay: 50 });
+      await page.keyboard.press('Tab', { delay: 50 });
+
+      await page.keyboard.press('Backspace');
+      await dateInputs[1].type(end_date, { delay: 50 });
+
+      const submitBtn = await page.$x(
+        `//button[contains(text(), " Применить ")]`,
+      );
+      //@ts-ignore
+      await submitBtn[0].click({ delay: 100 });
+      await this.delay(5000);
+      await page.evaluate(() => {
+        window.scroll(0, 0);
+      });
+      await this.delay(1000);
+      const donwloadButtton = await page.$x(
+        `//div[contains(text(), " Скачать в Excel")]`,
+      );
+
+      const client = await page.target().createCDPSession();
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: downloadsDir,
+      });
+      //@ts-ignore
+      await donwloadButtton[0].click({ delay: 100 });
+      await this.delay(3000);
+      const files = await fs.promises.readdir(downloadsDir, {
+        withFileTypes: true,
+      });
+      //@ts-ignore
+      const fileName = files[0].name.replaceAll(' ', '%20');
+      await page.browser().close();
+      const fileLink = `${this.host_name}:${this.port}/${uuid}/adverts-order/${fileName}`;
+
+      return fileLink;
+    } catch (error) {
+      console.log(error);
+    }
   }
 }
