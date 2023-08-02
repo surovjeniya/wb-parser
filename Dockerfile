@@ -11,7 +11,7 @@ COPY --chown=node:node package*.json ./
 RUN apt-get update
 RUN apt-get install chromium -y
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
+ENV PUPPETEER_SKIP_DOWNLOAD true
 
 RUN npm ci
 
@@ -33,6 +33,7 @@ COPY --chown=node:node package*.json ./
 RUN apt-get update
 RUN apt-get install chromium -y
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD true
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
@@ -56,6 +57,7 @@ FROM node:16-bullseye As production
 RUN apt-get update
 RUN apt-get install chromium -y
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD true
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
