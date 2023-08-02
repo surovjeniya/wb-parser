@@ -1,0 +1,22 @@
+version: '3.7'
+
+volumes:
+  downloads:
+    name: downloads
+    driver: local
+
+services:
+  parser-api-service:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    container_name: parser-api-app
+    volumes:
+      - downloads:/usr/src/app/downloads
+    environment:
+      HOST_NAME: http://localhost
+      PORT: 3000

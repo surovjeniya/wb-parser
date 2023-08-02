@@ -35,6 +35,7 @@ export class WildberriesService {
     const sessionsDir = this.createSessinsDir();
     const browser = await puppeteer.launch({
       headless: false,
+      executablePath: '/usr/bin/chromium-browser',
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
       args: [
@@ -263,77 +264,4 @@ export class WildberriesService {
       return fileLink;
     }
   }
-
-  // async goToAdverts(shop_name: string) {
-  //   const page = await this.changeShop('15', shop_name);
-  //   await this.delay(1000);
-  //   await page.goto('https://cmp.wildberries.ru/campaigns/list/active');
-  //   await page.waitForSelector('h1');
-  //   await this.delay(2000);
-  //   return page;
-  // }
-
-  // async searchAdvertCompany(
-  //   advertId: string,
-  //   shop_name: string,
-  //   start_date: string,
-  //   end_date: string,
-  // ) {
-  //   try {
-  //     // const uuid = v4();
-  //     // const downloadsDir = `${this.createDonwloadsDir()}/${uuid}/adverts-order`;
-  //     const page = await this.goToAdverts(shop_name);
-  //     const searchInputElement = (
-  //       await page.$('input[placeholder="Gjbcr"]')
-  //     ).click({ count: 3 });
-  //     await page.keyboard.press('Backspace');
-
-  //     // await page.goto(`https://cmp.wildberries.ru/statistics/${advertId}`);
-  //     // await this.delay(5000);
-
-  //     // await page.click('.icon__calendar', { delay: 100 });
-  //     // await this.delay(1000);
-  //     // const dateInputs = await page.$$('.date-picker__period-calendar__input');
-
-  //     // await dateInputs[0].click({ count: 3 });
-  //     // await page.keyboard.press('Backspace');
-  //     // await dateInputs[0].type(start_date, { delay: 50 });
-  //     // await page.keyboard.press('Tab', { delay: 50 });
-
-  //     // await page.keyboard.press('Backspace');
-  //     // await dateInputs[1].type(end_date, { delay: 50 });
-
-  //     // const submitBtn = await page.$x(
-  //     //   `//button[contains(text(), " Применить ")]`,
-  //     // );
-  //     // //@ts-ignore
-  //     // await submitBtn[0].click({ delay: 100 });
-  //     // await this.delay(5000);
-  //     // await page.evaluate(() => {
-  //     //   window.scroll(0, 0);
-  //     // });
-  //     // await this.delay(1000);
-  //     // const donwloadButtton = await page.$x(
-  //     //   `//div[contains(text(), " Скачать в Excel")]`,
-  //     // );
-  //     // const client = await page.target().createCDPSession();
-  //     // await client.send('Page.setDownloadBehavior', {
-  //     //   behavior: 'allow',
-  //     //   downloadPath: downloadsDir,
-  //     // });
-  //     // //@ts-ignore
-  //     // await donwloadButtton[0].click({ delay: 100 });
-  //     // await this.delay(3000);
-  //     // const files = await fs.promises.readdir(downloadsDir, {
-  //     //   withFileTypes: true,
-  //     // });
-  //     // //@ts-ignore
-  //     // const fileName = files[0].name.replaceAll(' ', '%20');
-  //     // await page.browser().close();
-  //     // const fileLink = `${this.host_name}:${this.port}/${uuid}/adverts-order/${fileName}`;
-  //     // return fileLink;
-  //   } catch (error) {
-  //     console.log(error);
-  //   }
-  // }
 }
