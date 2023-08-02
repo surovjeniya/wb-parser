@@ -32,7 +32,7 @@ services:
     volumes:
       - downloads:/usr/src/app/downloads
     environment:
-      - HOST_NAME: $INFRA_PARSER_HOSTNAME
-      - PORT: $INFRA_PARSER_API_PORT
+      HOST_NAME: $INFRA_PARSER_HOSTNAME
+      PORT: $INFRA_PARSER_API_PORT
     networks:
      - infra
