@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install gnupg wget -y && \
     apt-get update && \
     apt-get install google-chrome-stable -y --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
+ENV DISPLAY ':0'
 
 RUN npm ci
 
@@ -39,6 +40,7 @@ RUN apt-get update && apt-get install gnupg wget -y && \
     apt-get update && \
     apt-get install google-chrome-stable -y --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
+ENV DISPLAY ':0'
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
@@ -65,6 +67,7 @@ RUN apt-get update && apt-get install gnupg wget -y && \
     apt-get update && \
     apt-get install google-chrome-stable -y --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
+ENV DISPLAY ':0'
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
 COPY --chown=node:node --from=build /usr/src/app/dist ./dist
