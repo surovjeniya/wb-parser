@@ -2,7 +2,7 @@
 # BUILD FOR LOCAL DEVELOPMENT
 ###################
 
-FROM node:slim As development
+FROM node:16-slim As development
 
 WORKDIR /usr/src/app
 
@@ -32,7 +32,7 @@ USER node
 # BUILD FOR PRODUCTION
 ###################
 
-FROM node:slim As build
+FROM node:16-slim As build
 
 WORKDIR /usr/src/app
 
@@ -67,7 +67,7 @@ USER node
 # PRODUCTION
 ###################
 
-FROM node:slim As production
+FROM node:16-slim As production
 
 
 # We don't need the standalone Chromium
