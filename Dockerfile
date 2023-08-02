@@ -15,7 +15,7 @@ RUN apt-get update \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 
-RUN npm ci
+RUN npm install
 
 COPY . .
 
