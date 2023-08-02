@@ -37,7 +37,7 @@ export class WildberriesService {
       headless: false,
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
-      executablePath: 'google-chrome-stable',
+      executablePath: '/usr/bin/google-chrome',
       args: [
         '--disable-gpu',
         '--disable-dev-shm-usage',
