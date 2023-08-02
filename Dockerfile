@@ -9,7 +9,7 @@ RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repos
     apk add --no-cache \
     chromium@edge \
     nss@edge
-ENV CHROMIUM_PATH /usr/bin/chromium-browser
+ENV CHROMIUM_PATH /usr/bin/chromium
 
 RUN npm install
 
