@@ -35,13 +35,14 @@ export class WildberriesService {
     const sessionsDir = this.createSessinsDir();
     const browser = await puppeteer.launch({
       headless: false,
-      executablePath: '/usr/bin/google-chrome',
+      executablePath: '/usr/bin/chromium',
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
+        '--disable-gpu',
         '--disable-dev-shm-usage',
+        '--disable-setuid-sandbox',
+        '--no-sandbox',
         '--disable-infobars',
         '--window-position=0,0',
         '--ignore-certifcate-errors',
