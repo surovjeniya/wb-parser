@@ -9,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: './envs/.development.env',
+      envFilePath: './envs/.env',
       isGlobal: true,
     }),
     WildberriesModule,

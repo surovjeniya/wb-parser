@@ -1,0 +1,38 @@
+version: '3.7'
+
+networks:
+  infra:
+    name: $INFRA_NETWORK
+    driver: bridge
+volumes:
+  downloads:
+    name: $INFRA_DOWNLOADS_VOLUME
+    driver: local
+
+services:
+  nginx-service:
+    image: $INFRA_NGINX_IMAGE
+    container_name: $INFRA_NGINX_APP
+    build: 
+      context: ../nginx
+      dockerfile: Dockerfile
+    ports:
+      - "${INFRA_NGINX_PORT}:${INFRA_NGINX_PORT}"
+    restart: unless-stopped
+    networks:
+     - infra
+
+  parser-api-service:
+    image: $INFRA_PARSER_API_IMAGE
+    container_name: $INFRA_PARSER_API_APP
+    build: 
+      context: ../app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - downloads:/usr/src/app/downloads
+    environment:
+      - HOST_NAME: $INFRA_PARSER_HOSTNAME
+      - PORT: $INFRA_PARSER_API_PORT
+    networks:
+     - infra
