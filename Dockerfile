@@ -1,65 +1,20 @@
-###################
-# BUILD FOR LOCAL DEVELOPMENT
-###################
-
-FROM node:16-bullseye As development
+FROM node:alpine
 
 WORKDIR /usr/src/app
 
-COPY --chown=node:node package*.json ./
+COPY package*.json ./
 
-RUN apt-get update
-RUN apt-get install chromium -y
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD true
+RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
+    echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
+    apk add --no-cache \
+    chromium@edge \
+    nss@edge
+ENV CHROMIUM_PATH /usr/bin/chromium-browser
 
-RUN npm ci
+RUN npm install
 
-COPY --chown=node:node . .
-
-USER node
-
-###################
-# BUILD FOR PRODUCTION
-###################
-
-FROM node:16-bullseye As build
-
-WORKDIR /usr/src/app
-
-COPY --chown=node:node package*.json ./
-
-
-RUN apt-get update
-RUN apt-get install chromium -y
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD true
-
-COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
-
-COPY --chown=node:node . .
+COPY . .
 
 RUN npm run build
-
-ENV NODE_ENV production
-
-RUN npm ci --only=production && npm cache clean --force
-
-USER node
-
-###################
-# PRODUCTION
-###################
-
-FROM node:16-bullseye As production
-
-
-RUN apt-get update
-RUN apt-get install chromium -y
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD true
-
-COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
-COPY --chown=node:node --from=build /usr/src/app/dist ./dist
 
 CMD [ "node", "dist/main.js" ]
