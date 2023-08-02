@@ -8,28 +8,9 @@ WORKDIR /usr/src/app
 
 COPY --chown=node:node package*.json ./
 
-RUN apt-get update \
-    && apt-get -f install -y --no-install-recommends \
-    fonts-liberation \
-    libgtk-3-0 \
-    libwayland-client0 \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --nocache udev ttf-freefont chromium git
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ENV CHROMIUM_PATH /usr/bin/chromium-browser
 
 RUN npm ci
 
@@ -47,28 +28,9 @@ WORKDIR /usr/src/app
 
 COPY --chown=node:node package*.json ./
 
-RUN apt-get update \
-    && apt-get -f install -y --no-install-recommends \
-    fonts-liberation \
-    libgtk-3-0 \
-    libwayland-client0 \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --nocache udev ttf-freefont chromium git
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+ENV CHROMIUM_PATH /usr/bin/chromium-browser
 
 COPY --chown=node:node --from=development /usr/src/app/node_modules ./node_modules
 
