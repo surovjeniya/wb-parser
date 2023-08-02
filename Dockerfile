@@ -56,11 +56,7 @@ USER node
 
 FROM node:18-alpine As production
 
-RUN echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
-    echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
-    apk add --no-cache \
-    chromium@edge \
-    nss@edge
+
 ENV CHROMIUM_PATH /usr/bin/chromium-browser
 
 COPY --chown=node:node --from=build /usr/src/app/node_modules ./node_modules
