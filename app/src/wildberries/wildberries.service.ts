@@ -37,6 +37,7 @@ export class WildberriesService {
       env: {
         DISPLAY: ':10.0',
       },
+
       headless: 'new',
       ignoreHTTPSErrors: true,
       userDataDir: sessionsDir,
@@ -71,6 +72,7 @@ export class WildberriesService {
     const browser = await this.start();
     const page = await browser.newPage();
     await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
+    await this.delay(3000);
     await page.waitForSelector('.ProfileView').catch((error) => {
       this.logger.error('changeShop', error.message);
       throw new InternalServerErrorException('Profile selector waiting error.');
@@ -179,16 +181,15 @@ export class WildberriesService {
   ): Promise<Page> {
     const page = await this.changeShop('15', shop_name);
     await page.goto('https://seller.wildberries.ru/analytics');
-    await this.delay(1000);
+    await this.delay(2000);
 
     const linkHandlers = await page.$x(
       `//span[contains(text(), "Аналитика по карточкам товаров")]`,
     );
     //@ts-ignore
     await linkHandlers[0].click();
-    await this.delay(1000);
+    await this.delay(2000);
     await page.waitForSelector('#dateRange');
-
     await page.click('#dateRange');
     await this.delay(1000);
     await page.click('#startDate', { delay: 50 });
@@ -200,6 +201,7 @@ export class WildberriesService {
     for await (const i of new Array(10)) {
       await page.keyboard.press('Backspace');
     }
+    await this.delay(1000);
     await page.type('#endDate', end_date, { delay: 50 });
     await this.delay(2000);
     const saveBtn = await page.$x(`//span[contains(text(), "Сохранить")]`);
@@ -264,7 +266,7 @@ export class WildberriesService {
       });
       return parsedData;
     } else {
-      const fileLink = `${this.host_name}/${uuid}/${fileName}`;
+      const fileLink = `${this.host_name}:${this.port}/${uuid}/${fileName}`;
       return fileLink;
     }
   }
