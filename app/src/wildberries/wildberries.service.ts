@@ -241,7 +241,7 @@ export class WildberriesService {
       behavior: 'allow',
       downloadPath: downloadsDir,
     });
-    await this.delay(10000);
+    await this.delay(15000);
     await page.reload();
     await this.delay(2000);
 
@@ -264,7 +264,7 @@ export class WildberriesService {
       });
       return parsedData;
     } else {
-      const fileLink = `${this.host_name}:${this.port}/${uuid}/${fileName}`;
+      const fileLink = `${this.host_name}/${uuid}/${fileName}`;
       return fileLink;
     }
   }
