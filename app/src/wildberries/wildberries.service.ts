@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import puppeteer, { Browser, Page } from 'puppeteer';
@@ -13,7 +14,7 @@ import * as decompress from 'decompress';
 import xlsx from 'node-xlsx';
 
 @Injectable()
-export class WildberriesService {
+export class WildberriesService implements OnModuleInit {
   private readonly sessions_dir = path.join(__dirname, 'sessions');
   private readonly downloads_dir = path.join(
     __dirname,
@@ -25,7 +26,7 @@ export class WildberriesService {
     this.configService.get('NODE_ENV') &&
     this.configService.get('NODE_ENV') === 'production'
       ? ''
-      : this.configService.get('PORT');
+      : `:${this.configService.get('PORT')}`;
   private readonly host_name =
     this.configService.get('NODE_ENV') &&
     this.configService.get('NODE_ENV') === 'production'
@@ -35,20 +36,32 @@ export class WildberriesService {
   private readonly logger = new Logger(WildberriesService.name);
   constructor(private readonly configService: ConfigService) {}
 
+  onModuleInit() {
+    this.createSessionsDir();
+  }
+
+  createDownloadsDir(): string {
+    if (!fs.existsSync(this.downloads_dir)) fs.mkdirSync(this.downloads_dir);
+    return this.downloads_dir;
+  }
+
+  createSessionsDir(): string {
+    if (!fs.existsSync(this.sessions_dir)) fs.mkdirSync(this.sessions_dir);
+    return this.sessions_dir;
+  }
+
   delay(ms: number): Promise<unknown> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async start(): Promise<Browser> {
-    const sessionsDir = this.createSessinsDir();
     const browser = await puppeteer.launch({
       env: {
         DISPLAY: ':10.0',
       },
-
       headless: 'new',
       ignoreHTTPSErrors: true,
-      userDataDir: sessionsDir,
+      userDataDir: this.sessions_dir,
       executablePath: '/usr/bin/google-chrome',
       args: [
         '--disable-gpu',
@@ -65,29 +78,18 @@ export class WildberriesService {
     return browser;
   }
 
-  createDonwloadsDir(): string {
-    if (!fs.existsSync(this.downloads_dir)) fs.mkdirSync(this.downloads_dir);
-    return this.downloads_dir;
-  }
-
-  createSessinsDir(): string {
-    if (!fs.existsSync(path.join(__dirname, 'sessions')))
-      fs.mkdirSync(path.join(__dirname, 'sessions'));
-    return path.join(__dirname, 'sessions');
-  }
-
   async changeShop(shop_id?: string, shop_name?: string): Promise<Page> {
     const browser = await this.start();
     const page = await browser.newPage();
-    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
-    await this.delay(3000);
+    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
+      waitUntil: 'load',
+    });
     await page.waitForSelector('.ProfileView').catch((error) => {
       this.logger.error('changeShop', error.message);
       browser.close();
       throw new InternalServerErrorException('Profile selector waiting error.');
     });
     await page.click('.ProfileView', { delay: 300 });
-
     await this.delay(3000);
     const linkHandlers = await page.$x(
       `//span[contains(text(), "${shop_name}")]`,
@@ -246,7 +248,7 @@ export class WildberriesService {
     | InternalServerErrorException
   > {
     const uuid = v4();
-    const downloadsDir = `${this.createDonwloadsDir()}/${uuid}`;
+    const downloadsDir = `${this.createDownloadsDir()}/${uuid}`;
     const page = await this.gotoFourteenOrder(shop_name, start_date, end_date);
     const client = await page.target().createCDPSession();
     await client.send('Page.setDownloadBehavior', {
@@ -277,7 +279,7 @@ export class WildberriesService {
       });
       return parsedData;
     } else {
-      const fileLink = `${this.host_name}:${this.port}/${uuid}/${fileName}`;
+      const fileLink = `${this.host_name}${this.port}/${uuid}/${fileName}`;
       return fileLink;
     }
   }
