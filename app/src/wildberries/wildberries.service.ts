@@ -310,8 +310,9 @@ export class WildberriesService implements OnModuleInit {
     });
     await this.delay(5000);
     await page.setCookie(...cookies);
+    const content = await page.content();
     await page.browser().close();
-    return await page.content();
+    return content;
 
     // const searchInputElement = await page.$('input[placeholder="Поиск"]');
     // await searchInputElement.click({ delay: 100 });
