@@ -21,8 +21,16 @@ export class WildberriesService {
     '..',
     'downloads',
   );
-  private readonly port = this.configService.get('PORT');
-  private readonly host_name = this.configService.get('HOST_NAME');
+  private readonly port =
+    this.configService.get('NODE_ENV') &&
+    this.configService.get('NODE_ENV') === 'production'
+      ? ''
+      : this.configService.get('PORT');
+  private readonly host_name =
+    this.configService.get('NODE_ENV') &&
+    this.configService.get('NODE_ENV') === 'production'
+      ? this.configService.get('HOST_NAME')
+      : 'http://localhost';
   private code = null;
   private readonly logger = new Logger(WildberriesService.name);
   constructor(private readonly configService: ConfigService) {}
