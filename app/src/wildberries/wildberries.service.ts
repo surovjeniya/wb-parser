@@ -79,6 +79,9 @@ export class WildberriesService implements OnModuleInit {
         ],
       })
       .catch((error) => {
+        fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+          recursive: true,
+        });
         this.logger.error('start', error.message);
         throw new InternalServerErrorException('Browser start error');
       });
@@ -113,6 +116,9 @@ export class WildberriesService implements OnModuleInit {
       await this.delay(1000);
       return page;
     } catch (error) {
+      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+        recursive: true,
+      });
       await browser.close();
     }
   }
@@ -159,6 +165,9 @@ export class WildberriesService implements OnModuleInit {
       await browser.close();
       return content;
     } else {
+      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+        recursive: true,
+      });
       browser.close();
       throw new UnauthorizedException(
         'Code is empty. Input time is 15 seconds.Try signin again.',
@@ -254,6 +263,9 @@ export class WildberriesService implements OnModuleInit {
       await this.delay(1000);
       return page;
     } catch (error) {
+      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+        recursive: true,
+      });
       await page.browser().close();
     }
   }
@@ -310,6 +322,9 @@ export class WildberriesService implements OnModuleInit {
         return fileLink;
       }
     } catch (error) {
+      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+        recursive: true,
+      });
       await page.browser().close();
     }
   }
