@@ -5,7 +5,7 @@ import {
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
@@ -60,6 +60,7 @@ export class WildberriesService implements OnModuleInit {
         DISPLAY: ':10.0',
       },
       headless: 'new',
+      // headless: false,
       ignoreHTTPSErrors: true,
       userDataDir: this.sessions_dir,
       executablePath: '/usr/bin/google-chrome',
@@ -286,5 +287,39 @@ export class WildberriesService implements OnModuleInit {
       const fileLink = `${this.host_name}${this.port}/${uuid}/${fileName}`;
       return fileLink;
     }
+  }
+
+  async keyboardPress(key?: KeyInput, keys?: KeyInput[], page?: Page) {
+    if (key) {
+      await page.keyboard.press(key, { delay: 50 });
+    }
+    if (keys && keys.length) {
+      for await (const key of keys) {
+        await page.keyboard.press(key, { delay: 50 });
+      }
+    }
+  }
+
+  async goToAdverts(shop_name: string, advert_id: string) {
+    const page = await this.changeShop('15', shop_name);
+
+    const client = await page.target().createCDPSession();
+    const { cookies } = await client.send('Network.getAllCookies');
+    await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
+      waitUntil: 'load',
+    });
+    await this.delay(5000);
+    await page.setCookie(...cookies);
+    await page.browser().close();
+    return await page.content();
+
+    // const searchInputElement = await page.$('input[placeholder="Поиск"]');
+    // await searchInputElement.click({ delay: 100 });
+
+    // await this.keyboardPress(null, new Array(50).fill('ArrowRight'), page);
+    // await this.keyboardPress(null, new Array(50).fill('Backspace'), page);
+    // //@ts-ignore
+    // await this.keyboardPress(null, advert_id.split(''), page);
+    // await searchInputElement.press('Enter', { delay: 50 });
   }
 }

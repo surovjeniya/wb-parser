@@ -47,15 +47,13 @@ export class WildberriesController {
     }
   }
 
-  // @Post('go-to-adverts')
-  // async goToAdverts(@Body() dto: any) {
-  //   return await this.wildberriesService.searchAdvertCompany(
-  //     dto.advertId,
-  //     dto.shop_name,
-  //     dto.start_date,
-  //     dto.end_date,
-  //   );
-  // }
+  @Post('go-to-adverts')
+  async goToAdverts(@Body() dto: any) {
+    return await this.wildberriesService.goToAdverts(
+      dto.shop_name,
+      dto.advert_id,
+    );
+  }
 
   @Post('download-fourteen-order')
   async downloadFourteenOrder(@Body() dto: DownloadFourteenOrderDtoRequest) {
