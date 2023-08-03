@@ -12,6 +12,7 @@ import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import * as decompress from 'decompress';
 import xlsx from 'node-xlsx';
+import { error } from 'console';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit {
@@ -55,51 +56,65 @@ export class WildberriesService implements OnModuleInit {
   }
 
   async start(): Promise<Browser> {
-    const browser = await puppeteer.launch({
-      env: {
-        DISPLAY: ':10.0',
-      },
-      headless: 'new',
-      // headless: false,
-      ignoreHTTPSErrors: true,
-      userDataDir: this.sessions_dir,
-      executablePath: '/usr/bin/google-chrome',
-      args: [
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--disable-setuid-sandbox',
-        '--no-sandbox',
-        '--disable-infobars',
-        '--window-position=0,0',
-        '--ignore-certifcate-errors',
-        '--ignore-certifcate-errors-spki-list',
-        '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3312.0 Safari/537.36"',
-      ],
-    });
+    const browser = await puppeteer
+      .launch({
+        env: {
+          DISPLAY: ':10.0',
+        },
+        headless: 'new',
+        // headless: false,
+        ignoreHTTPSErrors: true,
+        userDataDir: this.sessions_dir,
+        executablePath: '/usr/bin/google-chrome',
+        args: [
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-setuid-sandbox',
+          '--no-sandbox',
+          '--disable-infobars',
+          '--window-position=0,0',
+          '--ignore-certifcate-errors',
+          '--ignore-certifcate-errors-spki-list',
+          '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3312.0 Safari/537.36"',
+        ],
+      })
+      .catch((error) => {
+        this.logger.error('start', error.message);
+        throw new InternalServerErrorException('Browser start error');
+      });
     return browser;
   }
 
   async changeShop(shop_id?: string, shop_name?: string): Promise<Page> {
     const browser = await this.start();
-    const page = await browser.newPage();
-    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
-      waitUntil: 'load',
-    });
-    await this.delay(3000);
-    await page.waitForSelector('.ProfileView').catch((error) => {
-      this.logger.error('changeShop', error.message);
-      browser.close();
-      throw new InternalServerErrorException('Profile selector waiting error.');
-    });
-    await page.click('.ProfileView', { delay: 300 });
-    await this.delay(3000);
-    const linkHandlers = await page.$x(
-      `//span[contains(text(), "${shop_name}")]`,
-    );
-    //@ts-ignore
-    linkHandlers.length && (await linkHandlers[0].click());
-    await this.delay(1000);
-    return page;
+    try {
+      const page = await browser.newPage();
+      await page.goto(
+        'https://seller.wildberries.ru/login/ru/?redirect_url=/',
+        {
+          waitUntil: 'load',
+        },
+      );
+      await this.delay(3000);
+      await page.waitForSelector('.ProfileView').catch((error) => {
+        this.logger.error('changeShop', error.message);
+        browser.close();
+        throw new InternalServerErrorException(
+          'Profile selector waiting error.',
+        );
+      });
+      await page.click('.ProfileView', { delay: 300 });
+      await this.delay(3000);
+      const linkHandlers = await page.$x(
+        `//span[contains(text(), "${shop_name}")]`,
+      );
+      //@ts-ignore
+      linkHandlers.length && (await linkHandlers[0].click());
+      await this.delay(1000);
+      return page;
+    } catch (error) {
+      await browser.close();
+    }
   }
 
   async sendPhoneNumber(
@@ -197,46 +212,50 @@ export class WildberriesService implements OnModuleInit {
     end_date: string,
   ): Promise<Page> {
     const page = await this.changeShop('15', shop_name);
-    await page.goto('https://seller.wildberries.ru/analytics');
-    await this.delay(2000);
+    try {
+      await page.goto('https://seller.wildberries.ru/analytics');
+      await this.delay(2000);
 
-    const linkHandlers = await page.$x(
-      `//span[contains(text(), "Аналитика по карточкам товаров")]`,
-    );
-    //@ts-ignore
-    await linkHandlers[0].click();
-    await this.delay(2000);
-    await page.waitForSelector('#dateRange');
-    await page.click('#dateRange');
-    await this.delay(1000);
-    await page.click('#startDate', { delay: 50 });
-    for await (const i of new Array(10)) {
-      await page.keyboard.press('Backspace');
+      const linkHandlers = await page.$x(
+        `//span[contains(text(), "Аналитика по карточкам товаров")]`,
+      );
+      //@ts-ignore
+      await linkHandlers[0].click();
+      await this.delay(2000);
+      await page.waitForSelector('#dateRange');
+      await page.click('#dateRange');
+      await this.delay(1000);
+      await page.click('#startDate', { delay: 50 });
+      for await (const i of new Array(10)) {
+        await page.keyboard.press('Backspace');
+      }
+      await page.type('#startDate', start_date, { delay: 50 });
+      await page.click('#endDate');
+      for await (const i of new Array(10)) {
+        await page.keyboard.press('Backspace');
+      }
+      await this.delay(1000);
+      await page.type('#endDate', end_date, { delay: 50 });
+      await this.delay(2000);
+      const saveBtn = await page.$x(`//span[contains(text(), "Сохранить")]`);
+      //@ts-ignore
+      await saveBtn[0].click();
+      await this.delay(1000);
+      const saveXlsxBtn = await page.$x(
+        `//span[contains(text(), "Скачать Excel")]`,
+      );
+      await this.delay(1000);
+      //@ts-ignore
+      await saveXlsxBtn[0].click();
+      await this.delay(1000);
+      await page.goto(
+        'https://seller.wildberries.ru/new-goods/created-cards?loadManagerHistory=true',
+      );
+      await this.delay(1000);
+      return page;
+    } catch (error) {
+      await page.browser().close();
     }
-    await page.type('#startDate', start_date, { delay: 50 });
-    await page.click('#endDate');
-    for await (const i of new Array(10)) {
-      await page.keyboard.press('Backspace');
-    }
-    await this.delay(1000);
-    await page.type('#endDate', end_date, { delay: 50 });
-    await this.delay(2000);
-    const saveBtn = await page.$x(`//span[contains(text(), "Сохранить")]`);
-    //@ts-ignore
-    await saveBtn[0].click();
-    await this.delay(1000);
-    const saveXlsxBtn = await page.$x(
-      `//span[contains(text(), "Скачать Excel")]`,
-    );
-    await this.delay(1000);
-    //@ts-ignore
-    await saveXlsxBtn[0].click();
-    await this.delay(1000);
-    await page.goto(
-      'https://seller.wildberries.ru/new-goods/created-cards?loadManagerHistory=true',
-    );
-    await this.delay(1000);
-    return page;
   }
 
   async downloadFourteenOrder(
@@ -255,37 +274,43 @@ export class WildberriesService implements OnModuleInit {
     const uuid = v4();
     const downloadsDir = `${this.createDownloadsDir()}/${uuid}`;
     const page = await this.gotoFourteenOrder(shop_name, start_date, end_date);
-    const client = await page.target().createCDPSession();
-    await client.send('Page.setDownloadBehavior', {
-      behavior: 'allow',
-      downloadPath: downloadsDir,
-    });
-    await this.delay(15000);
-    await page.reload();
-    await this.delay(2000);
-
-    const saveXlsxBtn = await page.$x(
-      `//span[contains(text(), "Скачать архив")]`,
-    );
-    //@ts-ignore
-    await saveXlsxBtn[0].click({ delay: 100 });
-    await this.delay(1000);
-    const files = await fs.promises.readdir(downloadsDir, {
-      withFileTypes: true,
-    });
-    await page.browser().close();
-    const xlsxFile = await this.unzipFile(uuid, files[0].name);
-    const fileName = xlsxFile[0].path;
-    if (parse_xlsx) {
-      const parsedData = await this.parseXlsx(fileName, uuid).catch((error) => {
-        page.browser().close();
-        this.logger.error('downloadFourteenOrder', error.message);
-        throw new InternalServerErrorException('XLSX parse error.');
+    try {
+      const client = await page.target().createCDPSession();
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: downloadsDir,
       });
-      return parsedData;
-    } else {
-      const fileLink = `${this.host_name}${this.port}/${uuid}/${fileName}`;
-      return fileLink;
+      await this.delay(15000);
+      await page.reload();
+      await this.delay(2000);
+
+      const saveXlsxBtn = await page.$x(
+        `//span[contains(text(), "Скачать архив")]`,
+      );
+      //@ts-ignore
+      await saveXlsxBtn[0].click({ delay: 100 });
+      await this.delay(1000);
+      const files = await fs.promises.readdir(downloadsDir, {
+        withFileTypes: true,
+      });
+      await page.browser().close();
+      const xlsxFile = await this.unzipFile(uuid, files[0].name);
+      const fileName = xlsxFile[0].path;
+      if (parse_xlsx) {
+        const parsedData = await this.parseXlsx(fileName, uuid).catch(
+          (error) => {
+            page.browser().close();
+            this.logger.error('downloadFourteenOrder', error.message);
+            throw new InternalServerErrorException('XLSX parse error.');
+          },
+        );
+        return parsedData;
+      } else {
+        const fileLink = `${this.host_name}${this.port}/${uuid}/${fileName}`;
+        return fileLink;
+      }
+    } catch (error) {
+      await page.browser().close();
     }
   }
 
@@ -303,16 +328,20 @@ export class WildberriesService implements OnModuleInit {
   async goToAdverts(shop_name: string, advert_id: string) {
     const page = await this.changeShop('15', shop_name);
 
-    const client = await page.target().createCDPSession();
-    const { cookies } = await client.send('Network.getAllCookies');
-    await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
-      waitUntil: 'load',
-    });
-    await this.delay(5000);
-    await page.setCookie(...cookies);
-    const content = await page.content();
-    await page.browser().close();
-    return content;
+    try {
+      const client = await page.target().createCDPSession();
+      const { cookies } = await client.send('Network.getAllCookies');
+      await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
+        waitUntil: 'load',
+      });
+      await this.delay(5000);
+      await page.setCookie(...cookies);
+      const content = await page.content();
+      await page.browser().close();
+      return content;
+    } catch (error) {
+      await page.browser().close();
+    }
 
     // const searchInputElement = await page.$('input[placeholder="Поиск"]');
     // await searchInputElement.click({ delay: 100 });
