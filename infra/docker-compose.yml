@@ -35,5 +35,6 @@ services:
       HOST_NAME: $INFRA_PARSER_HOSTNAME
       PORT: $INFRA_PARSER_API_PORT
       NODE_ENV: production
+      TZ: Europe/Moscow
     networks:
      - infra
