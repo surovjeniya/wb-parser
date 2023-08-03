@@ -83,6 +83,7 @@ export class WildberriesService {
     await this.delay(3000);
     await page.waitForSelector('.ProfileView').catch((error) => {
       this.logger.error('changeShop', error.message);
+      browser.close();
       throw new InternalServerErrorException('Profile selector waiting error.');
     });
     await page.click('.ProfileView', { delay: 300 });
@@ -136,6 +137,7 @@ export class WildberriesService {
       await browser.close();
       return content;
     } else {
+      browser.close();
       throw new UnauthorizedException(
         'Code is empty. Input time is 15 seconds.Try signin again.',
       );
@@ -269,6 +271,7 @@ export class WildberriesService {
     const fileName = xlsxFile[0].path;
     if (parse_xlsx) {
       const parsedData = await this.parseXlsx(fileName, uuid).catch((error) => {
+        page.browser().close();
         this.logger.error('downloadFourteenOrder', error.message);
         throw new InternalServerErrorException('XLSX parse error.');
       });
