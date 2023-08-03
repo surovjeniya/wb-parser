@@ -15,13 +15,13 @@ import xlsx from 'node-xlsx';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit {
-  private readonly sessions_dir = path.join(__dirname, 'sessions');
   private readonly downloads_dir = path.join(
     __dirname,
     '..',
     '..',
     'downloads',
   );
+  private readonly sessions_dir = path.join(this.downloads_dir, 'sessions');
   private readonly port =
     this.configService.get('NODE_ENV') &&
     this.configService.get('NODE_ENV') === 'production'
@@ -84,6 +84,7 @@ export class WildberriesService implements OnModuleInit {
     await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
       waitUntil: 'load',
     });
+    await this.delay(3000);
     await page.waitForSelector('.ProfileView').catch((error) => {
       this.logger.error('changeShop', error.message);
       browser.close();
@@ -103,8 +104,11 @@ export class WildberriesService implements OnModuleInit {
   async sendPhoneNumber(
     phone_number: string,
   ): Promise<string | UnauthorizedException> {
-    if (fs.existsSync(this.sessions_dir))
+    if (fs.existsSync(this.sessions_dir)) {
       await fs.promises.rm(this.sessions_dir, { recursive: true });
+      await fs.promises.mkdir(this.sessions_dir);
+    }
+
     const browser = await this.start();
     const page: Page = await browser.newPage();
     await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
