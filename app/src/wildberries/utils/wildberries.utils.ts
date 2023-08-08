@@ -64,10 +64,7 @@ export const getCookies = async (
 
 export const start = async (): Promise<Browser> => {
   const browser = await puppeteer.launch(BROWSER_CONFIG).catch((error) => {
-    fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
-      recursive: true,
-    });
-    console.error('start', error.message);
+    console.error(`${start.name}`, error.message);
     throw new InternalServerErrorException('Browser start error');
   });
   return browser;

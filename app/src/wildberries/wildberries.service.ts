@@ -38,6 +38,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
         recursive: true,
       });
     }
+
     this.browser = await start();
   }
 
@@ -204,7 +205,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
         };
       }
     } catch (error) {
-      await page.browser().close();
+      await page.close();
       console.error(`${this.goToAdverts.name}`, error.message);
     }
   }
