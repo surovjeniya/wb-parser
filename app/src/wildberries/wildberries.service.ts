@@ -6,7 +6,7 @@ import {
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Browser, KeyInput, Page } from 'puppeteer';
+import { KeyInput, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
@@ -26,7 +26,7 @@ import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
 export class WildberriesService implements OnModuleInit, OnModuleDestroy {
   private code = null;
   private readonly logger = new Logger(WildberriesService.name);
-  private browser = null;
+
   constructor(private readonly configService: ConfigService) {}
 
   onModuleDestroy() {
