@@ -9,7 +9,6 @@ import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
 import * as path from 'path';
 import { InternalServerErrorException } from '@nestjs/common';
 import xlsx from 'node-xlsx';
-import { Cluster } from 'puppeteer-cluster';
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
