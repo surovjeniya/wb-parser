@@ -10,8 +10,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
-import * as decompress from 'decompress';
-import xlsx from 'node-xlsx';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit {
@@ -21,17 +19,19 @@ export class WildberriesService implements OnModuleInit {
     '..',
     'downloads',
   );
+  private readonly production_stage =
+    this.configService.get('NOE_ENV') &&
+    this.configService.get('NODE_ENV') === 'production'
+      ? true
+      : false;
   private readonly sessions_dir = path.join(this.downloads_dir, 'sessions');
-  private readonly port =
-    this.configService.get('NODE_ENV') &&
-    this.configService.get('NODE_ENV') === 'production'
-      ? ''
-      : `:${this.configService.get('PORT')}`;
-  private readonly host_name =
-    this.configService.get('NODE_ENV') &&
-    this.configService.get('NODE_ENV') === 'production'
-      ? this.configService.get('HOST_NAME')
-      : 'http://localhost';
+  private readonly port = this.production_stage
+    ? ''
+    : `:${this.configService.get('PORT')}`;
+
+  private readonly host_name = this.production_stage
+    ? this.configService.get('HOST_NAME')
+    : 'http://localhost';
   private code = null;
   private readonly logger = new Logger(WildberriesService.name);
   constructor(private readonly configService: ConfigService) {}
@@ -58,12 +58,12 @@ export class WildberriesService implements OnModuleInit {
     const browser = await puppeteer
       .launch({
         env: {
-          DISPLAY: ':10.0',
+          DISPLAY: this.production_stage ? ':10.0' : null,
         },
-        headless: 'new',
+        headless: this.production_stage ? 'new' : false,
         ignoreHTTPSErrors: true,
         userDataDir: this.sessions_dir,
-        executablePath: '/usr/bin/google-chrome',
+        executablePath: this.production_stage ? '/usr/bin/google-chrome' : null,
         args: [
           '--disable-gpu',
           '--disable-dev-shm-usage',
@@ -259,6 +259,7 @@ export class WildberriesService implements OnModuleInit {
         .catch((error) => {
           throw new InternalServerErrorException('Download cpm file error.');
         });
+      console.log(fileName);
       //@ts-ignore
       const fileLink = `${this.host_name}${this.port}/${uuid}/${
         fileName ? fileName.replaceAll(' ', '%20') : null
