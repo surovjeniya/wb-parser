@@ -10,26 +10,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
+import {
+  BROWSER_CONFIG,
+  DOWNLOADS_DIR,
+  NODE_ENV,
+  SESSIONS_DIR,
+} from './config/browser.config';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit {
-  private readonly downloads_dir = path.join(
-    __dirname,
-    '..',
-    '..',
-    'downloads',
-  );
-  private readonly production_stage =
-    this.configService.get('NOE_ENV') &&
-    this.configService.get('NODE_ENV') === 'production'
-      ? true
-      : false;
-  private readonly sessions_dir = path.join(this.downloads_dir, 'sessions');
-  private readonly port = this.production_stage
-    ? ''
-    : `:${this.configService.get('PORT')}`;
-
-  private readonly host_name = this.production_stage
+  private readonly port = NODE_ENV ? '' : `:${this.configService.get('PORT')}`;
+  private readonly host_name = NODE_ENV
     ? this.configService.get('HOST_NAME')
     : 'http://localhost';
   private code = null;
@@ -41,13 +32,13 @@ export class WildberriesService implements OnModuleInit {
   }
 
   createDownloadsDir(): string {
-    if (!fs.existsSync(this.downloads_dir)) fs.mkdirSync(this.downloads_dir);
-    return this.downloads_dir;
+    if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR);
+    return DOWNLOADS_DIR;
   }
 
   createSessionsDir(): string {
-    if (!fs.existsSync(this.sessions_dir)) fs.mkdirSync(this.sessions_dir);
-    return this.sessions_dir;
+    if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR);
+    return SESSIONS_DIR;
   }
 
   delay(ms: number): Promise<unknown> {
@@ -55,34 +46,13 @@ export class WildberriesService implements OnModuleInit {
   }
 
   async start(): Promise<Browser> {
-    const browser = await puppeteer
-      .launch({
-        env: {
-          DISPLAY: this.production_stage ? ':10.0' : null,
-        },
-        headless: this.production_stage ? 'new' : false,
-        ignoreHTTPSErrors: true,
-        userDataDir: this.sessions_dir,
-        executablePath: this.production_stage ? '/usr/bin/google-chrome' : null,
-        args: [
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--disable-setuid-sandbox',
-          '--no-sandbox',
-          '--disable-infobars',
-          '--window-position=0,0',
-          '--ignore-certifcate-errors',
-          '--ignore-certifcate-errors-spki-list',
-          '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3312.0 Safari/537.36"',
-        ],
-      })
-      .catch((error) => {
-        fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
-          recursive: true,
-        });
-        this.logger.error('start', error.message);
-        throw new InternalServerErrorException('Browser start error');
+    const browser = await puppeteer.launch(BROWSER_CONFIG).catch((error) => {
+      fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
+        recursive: true,
       });
+      this.logger.error('start', error.message);
+      throw new InternalServerErrorException('Browser start error');
+    });
     return browser;
   }
 
@@ -114,7 +84,7 @@ export class WildberriesService implements OnModuleInit {
       await this.delay(1000);
       return page;
     } catch (error) {
-      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+      fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
         recursive: true,
       });
       await browser.close();
@@ -124,9 +94,9 @@ export class WildberriesService implements OnModuleInit {
   async sendPhoneNumber(
     phone_number: string,
   ): Promise<string | UnauthorizedException> {
-    if (fs.existsSync(this.sessions_dir)) {
-      await fs.promises.rm(this.sessions_dir, { recursive: true });
-      await fs.promises.mkdir(this.sessions_dir);
+    if (fs.existsSync(SESSIONS_DIR)) {
+      await fs.promises.rm(SESSIONS_DIR, { recursive: true });
+      await fs.promises.mkdir(SESSIONS_DIR);
     }
 
     const browser = await this.start();
@@ -163,7 +133,7 @@ export class WildberriesService implements OnModuleInit {
       await browser.close();
       return content;
     } else {
-      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
+      fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
         recursive: true,
       });
       browser.close();
@@ -213,7 +183,7 @@ export class WildberriesService implements OnModuleInit {
       const client = await page.target().createCDPSession();
       await client.send('Page.setDownloadBehavior', {
         behavior: 'allow',
-        downloadPath: path.join(this.downloads_dir, uuid),
+        downloadPath: path.join(DOWNLOADS_DIR, uuid),
       });
       await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
         waitUntil: 'load',
@@ -251,7 +221,7 @@ export class WildberriesService implements OnModuleInit {
       await page.click('.icon__download');
       await this.delay(3000);
       const fileName = await fs.promises
-        .readdir(path.join(this.downloads_dir, uuid), {
+        .readdir(path.join(DOWNLOADS_DIR, uuid), {
           withFileTypes: true,
         })
         .then((data) => data[0].name)
