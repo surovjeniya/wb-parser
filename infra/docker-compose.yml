@@ -5,6 +5,9 @@ networks:
     name: $INFRA_NETWORK
     driver: bridge
 volumes:
+  downloads-second:
+    name: $INFRA_DOWNLOADS_SECOND_VOLUME
+    driver: local
   downloads:
     name: $INFRA_DOWNLOADS_VOLUME
     driver: local
@@ -22,6 +25,25 @@ services:
     networks:
      - infra
 
+  parser-api-service-second:
+    image: $INFRA_PARSER_API_IMAGE
+    container_name: $INFRA_PARSER_API_SECOND_APP
+    build: 
+      context: ../app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      HOST_NAME: $INFRA_PARSER_HOSTNAME
+      PORT: $INFRA_PARSER_API_SECOND_PORT
+      NODE_ENV: production
+      TZ: Europe/Moscow
+    networks:
+     - infra
+    volumes:
+      - downloads-second:/usr/src/app/downloads
+    ports:
+      - "${INFRA_PARSER_API_SECOND_PORT}:${INFRA_PARSER_API_SECOND_PORT}"
+
   parser-api-service:
     image: $INFRA_PARSER_API_IMAGE
     container_name: $INFRA_PARSER_API_APP
@@ -38,3 +60,5 @@ services:
       TZ: Europe/Moscow
     networks:
      - infra
+    ports:
+      - "${INFRA_PARSER_API_PORT}:${INFRA_PARSER_API_PORT}"

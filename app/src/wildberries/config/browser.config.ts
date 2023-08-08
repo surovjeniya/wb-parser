@@ -15,6 +15,7 @@ export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
   env: NODE_ENV && {
     DISPLAY: ':10.0',
   },
+
   headless: NODE_ENV ? 'new' : false,
   ignoreHTTPSErrors: true,
   userDataDir: SESSIONS_DIR,
