@@ -368,7 +368,11 @@ export class WildberriesService implements OnModuleInit {
         waitUntil: 'load',
       });
       await this.delay(3000);
-      await page.click('.icon__calendar');
+      await page.click('.icon__calendar').catch((error) => {
+        const content = page.content();
+        page.browser().close();
+        return content;
+      });
       await this.delay(2000);
 
       const inputsElements = await page.$$(
