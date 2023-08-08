@@ -5,14 +5,13 @@ import {
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
-import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
+import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
 import * as decompress from 'decompress';
 import xlsx from 'node-xlsx';
-import { error } from 'console';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit {
@@ -58,14 +57,15 @@ export class WildberriesService implements OnModuleInit {
   async start(): Promise<Browser> {
     const browser = await puppeteer
       .launch({
-        env: {
-          DISPLAY: ':10.0',
-        },
+        // env: {
+        //   DISPLAY: ':10.0',
+        // },
+        // headless: 'new',
         headless: 'new',
-        // headless: false,
-        ignoreHTTPSErrors: true,
+        devtools: true,
+        // ignoreHTTPSErrors: true,
         userDataDir: this.sessions_dir,
-        executablePath: '/usr/bin/google-chrome',
+        // executablePath: '/usr/bin/google-chrome',
         args: [
           '--disable-gpu',
           '--disable-dev-shm-usage',
@@ -340,31 +340,82 @@ export class WildberriesService implements OnModuleInit {
     }
   }
 
-  async goToAdverts(shop_name: string, advert_id: string) {
-    const page = await this.changeShop('15', shop_name);
+  async setCookies(page: Page, cookies: Protocol.Network.Cookie[]) {
+    const client = await page.target().createCDPSession();
+    return await client.send('Network.setCookies', { cookies });
+  }
 
+  async getCookies(page: Page) {
+    const client = await page.target().createCDPSession();
+    const { cookies } = await client.send('Network.getCookies');
+    return cookies;
+  }
+
+  async goToAdverts(
+    shop_name: string,
+    advert_id: string,
+    start_date: string,
+    end_date: string,
+    with_content?: boolean,
+  ) {
+    const page = await this.changeShop('15', shop_name);
     try {
+      const uuid = v4();
       const client = await page.target().createCDPSession();
-      const { cookies } = await client.send('Network.getAllCookies');
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: path.join(this.downloads_dir, uuid),
+      });
       await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
         waitUntil: 'load',
       });
-      await this.delay(5000);
-      await page.setCookie(...cookies);
+      await this.delay(3000);
+      await page.click('.icon__calendar');
+      await this.delay(2000);
+
+      const inputsElements = await page.$$(
+        '.date-picker__period-calendar__input',
+      );
+
+      await inputsElements[0].click({ count: 3 });
+      await this.keyboardPress('Backspace', null, page);
+      //@ts-ignore
+      await this.keyboardPress(null, start_date.split(''), page);
+
+      await inputsElements[1].click({ count: 3 });
+      await this.keyboardPress('Backspace', null, page);
+      //@ts-ignore
+      await this.keyboardPress(null, end_date.split(''), page);
+
+      const submitBtn = await page.$x(
+        `//button[contains(text(), " Применить ")]`,
+      );
+      //@ts-ignore
+      await submitBtn[0].click();
+
+      await page.evaluate(() => window.scroll(0, 0));
+
+      await page.click('.icon__download');
+      await this.delay(3000);
+      const fileName = await fs.promises
+        .readdir(path.join(this.downloads_dir, uuid), {
+          withFileTypes: true,
+        })
+        .then((data) => data[0].name);
+      //@ts-ignore
+      const fileLink = `${this.host_name}${
+        this.port
+        //@ts-ignore
+      }/${uuid}/${fileName.replaceAll(' ', '%20')}`;
       const content = await page.content();
       await page.browser().close();
-      return content;
+      if (with_content) {
+        return content;
+      } else {
+        return fileLink;
+      }
     } catch (error) {
-      await page.browser().close();
+      console.log(error);
     }
-
-    // const searchInputElement = await page.$('input[placeholder="Поиск"]');
-    // await searchInputElement.click({ delay: 100 });
-
-    // await this.keyboardPress(null, new Array(50).fill('ArrowRight'), page);
-    // await this.keyboardPress(null, new Array(50).fill('Backspace'), page);
-    // //@ts-ignore
-    // await this.keyboardPress(null, advert_id.split(''), page);
-    // await searchInputElement.press('Enter', { delay: 50 });
   }
 }

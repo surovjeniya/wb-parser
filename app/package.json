@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/serve-static": "^4.0.0",
     "@types/puppeteer": "^7.0.4",
+    "axios": "^1.4.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "decompress": "^4.2.1",

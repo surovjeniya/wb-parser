@@ -52,6 +52,9 @@ export class WildberriesController {
     return await this.wildberriesService.goToAdverts(
       dto.shop_name,
       dto.advert_id,
+      dto.start_date,
+      dto.end_date,
+      dto.with_content,
     );
   }
 
