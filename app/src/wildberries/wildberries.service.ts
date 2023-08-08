@@ -77,6 +77,7 @@ export class WildberriesService implements OnModuleInit {
         ],
       })
       .catch((error) => {
+        browser.close();
         fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
           recursive: true,
         });
