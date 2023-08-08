@@ -57,15 +57,13 @@ export class WildberriesService implements OnModuleInit {
   async start(): Promise<Browser> {
     const browser = await puppeteer
       .launch({
-        // env: {
-        //   DISPLAY: ':10.0',
-        // },
-        // headless: 'new',
+        env: {
+          DISPLAY: ':10.0',
+        },
         headless: 'new',
-        devtools: true,
-        // ignoreHTTPSErrors: true,
+        ignoreHTTPSErrors: true,
         userDataDir: this.sessions_dir,
-        // executablePath: '/usr/bin/google-chrome',
+        executablePath: '/usr/bin/google-chrome',
         args: [
           '--disable-gpu',
           '--disable-dev-shm-usage',
