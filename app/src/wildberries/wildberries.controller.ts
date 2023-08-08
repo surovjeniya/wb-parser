@@ -57,22 +57,4 @@ export class WildberriesController {
       dto.with_content,
     );
   }
-
-  @Post('download-fourteen-order')
-  async downloadFourteenOrder(@Body() dto: DownloadFourteenOrderDtoRequest) {
-    try {
-      return await this.wildberriesService.downloadFourteenOrder(
-        dto.shop_name,
-        dto.start_date,
-        dto.end_date,
-        dto.parse_xlsx,
-      );
-    } catch (error) {
-      if (error.response && error.response.statusCode === 500) {
-        throw new InternalServerErrorException(error.response.message);
-      } else {
-        throw new InternalServerErrorException(error.message);
-      }
-    }
-  }
 }

@@ -179,155 +179,6 @@ export class WildberriesService implements OnModuleInit {
     return this.code;
   }
 
-  async parseXlsx(
-    fileName: string,
-    dir: string,
-  ): Promise<
-    {
-      name: string;
-      data: any[][];
-    }[]
-  > {
-    const fileData = fs.readFileSync(
-      path.join(this.downloads_dir, dir, fileName),
-    );
-    const parsedData = xlsx.parse(fileData);
-    return parsedData;
-  }
-
-  async unzipFile(
-    dir: string,
-    fileName: string,
-  ): Promise<decompress.File[] | InternalServerErrorException> {
-    const filePath = path.join(this.downloads_dir, dir, fileName);
-    const decompresssed = await decompress(
-      filePath,
-      path.join(this.downloads_dir, dir),
-    ).catch((error) => {
-      this.logger.error('unzipFile', error.message);
-      throw new InternalServerErrorException('Zip unpacked error.');
-    });
-    await fs.promises.unlink(filePath).catch((error) => {
-      this.logger.error('unzipFile', error.message);
-      throw new InternalServerErrorException('Zip unlink error.');
-    });
-    return decompresssed;
-  }
-
-  async gotoFourteenOrder(
-    shop_name: string,
-    start_date: string,
-    end_date: string,
-  ): Promise<Page> {
-    const page = await this.changeShop('15', shop_name);
-    try {
-      await page.goto('https://seller.wildberries.ru/analytics');
-      await this.delay(2000);
-
-      const linkHandlers = await page.$x(
-        `//span[contains(text(), "Аналитика по карточкам товаров")]`,
-      );
-      //@ts-ignore
-      await linkHandlers[0].click();
-      await this.delay(2000);
-      await page.waitForSelector('#dateRange');
-      await page.click('#dateRange');
-      await this.delay(1000);
-      await page.click('#startDate', { delay: 50 });
-      for await (const i of new Array(10)) {
-        await page.keyboard.press('Backspace');
-      }
-      await page.type('#startDate', start_date, { delay: 50 });
-      await page.click('#endDate');
-      for await (const i of new Array(10)) {
-        await page.keyboard.press('Backspace');
-      }
-      await this.delay(1000);
-      await page.type('#endDate', end_date, { delay: 50 });
-      await this.delay(2000);
-      const saveBtn = await page.$x(`//span[contains(text(), "Сохранить")]`);
-      //@ts-ignore
-      await saveBtn[0].click();
-      await this.delay(1000);
-      const saveXlsxBtn = await page.$x(
-        `//span[contains(text(), "Скачать Excel")]`,
-      );
-      await this.delay(1000);
-      //@ts-ignore
-      await saveXlsxBtn[0].click();
-      await this.delay(1000);
-      await page.goto(
-        'https://seller.wildberries.ru/new-goods/created-cards?loadManagerHistory=true',
-      );
-      await this.delay(1000);
-      return page;
-    } catch (error) {
-      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
-        recursive: true,
-      });
-      await page.browser().close();
-    }
-  }
-
-  async downloadFourteenOrder(
-    shop_name: string,
-    start_date: string,
-    end_date: string,
-    parse_xlsx?: boolean,
-  ): Promise<
-    | string
-    | {
-        name: string;
-        data: any[][];
-      }[]
-    | InternalServerErrorException
-  > {
-    const uuid = v4();
-    const downloadsDir = `${this.createDownloadsDir()}/${uuid}`;
-    const page = await this.gotoFourteenOrder(shop_name, start_date, end_date);
-    try {
-      const client = await page.target().createCDPSession();
-      await client.send('Page.setDownloadBehavior', {
-        behavior: 'allow',
-        downloadPath: downloadsDir,
-      });
-      await this.delay(15000);
-      await page.reload();
-      await this.delay(2000);
-
-      const saveXlsxBtn = await page.$x(
-        `//span[contains(text(), "Скачать архив")]`,
-      );
-      //@ts-ignore
-      await saveXlsxBtn[0].click({ delay: 100 });
-      await this.delay(1000);
-      const files = await fs.promises.readdir(downloadsDir, {
-        withFileTypes: true,
-      });
-      await page.browser().close();
-      const xlsxFile = await this.unzipFile(uuid, files[0].name);
-      const fileName = xlsxFile[0].path;
-      if (parse_xlsx) {
-        const parsedData = await this.parseXlsx(fileName, uuid).catch(
-          (error) => {
-            page.browser().close();
-            this.logger.error('downloadFourteenOrder', error.message);
-            throw new InternalServerErrorException('XLSX parse error.');
-          },
-        );
-        return parsedData;
-      } else {
-        const fileLink = `${this.host_name}${this.port}/${uuid}/${fileName}`;
-        return fileLink;
-      }
-    } catch (error) {
-      fs.promises.rm(path.join(this.sessions_dir, 'SingletonLock'), {
-        recursive: true,
-      });
-      await page.browser().close();
-    }
-  }
-
   async keyboardPress(key?: KeyInput, keys?: KeyInput[], page?: Page) {
     if (key) {
       await page.keyboard.press(key, { delay: 50 });
@@ -368,11 +219,11 @@ export class WildberriesService implements OnModuleInit {
       await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
         waitUntil: 'load',
       });
-      await this.delay(3000);
+      await this.delay(5000);
       await page.click('.icon__calendar').catch((error) => {
         const content = page.content();
         page.browser().close();
-        return content;
+        throw new InternalServerErrorException('Click icon calendar error.');
       });
       await this.delay(2000);
 
@@ -410,7 +261,7 @@ export class WildberriesService implements OnModuleInit {
         });
       //@ts-ignore
       const fileLink = `${this.host_name}${this.port}/${uuid}/${
-        fileName && fileName.replaceAll(' ', '%20')
+        fileName ? fileName.replaceAll(' ', '%20') : null
       }`;
       const content = await page.content();
       await page.browser().close();
