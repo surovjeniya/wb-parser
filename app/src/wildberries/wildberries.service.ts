@@ -399,12 +399,14 @@ export class WildberriesService implements OnModuleInit {
         .readdir(path.join(this.downloads_dir, uuid), {
           withFileTypes: true,
         })
-        .then((data) => data[0].name);
+        .then((data) => data[0].name)
+        .catch((error) => {
+          throw new InternalServerErrorException('Download cpm file error.');
+        });
       //@ts-ignore
-      const fileLink = `${this.host_name}${
-        this.port
-        //@ts-ignore
-      }/${uuid}/${fileName.replaceAll(' ', '%20')}`;
+      const fileLink = `${this.host_name}${this.port}/${uuid}/${
+        fileName && fileName.replaceAll(' ', '%20')
+      }`;
       const content = await page.content();
       await page.browser().close();
       if (with_content) {
