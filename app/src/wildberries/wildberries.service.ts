@@ -224,14 +224,21 @@ export class WildberriesService implements OnModuleInit {
         .readdir(path.join(DOWNLOADS_DIR, uuid), {
           withFileTypes: true,
         })
-        .then((data) => data[0].name)
+        .then((data) => {
+          fs.renameSync(
+            path.join(DOWNLOADS_DIR, uuid, data[0].name),
+            path.join(DOWNLOADS_DIR, uuid, 'order.xlsx'),
+          );
+          return 'order.xlsx';
+        })
         .catch((error) => {
+          page.browser().close();
+          this.logger.error(`${this.goToAdverts}`, error.message);
           throw new InternalServerErrorException('Download cpm file error.');
         });
-      console.log(fileName);
-      //@ts-ignore
+
       const fileLink = `${this.host_name}${this.port}/${uuid}/${
-        fileName ? fileName.replaceAll(' ', '%20') : null
+        fileName && fileName
       }`;
       const content = await page.content();
       await page.browser().close();
