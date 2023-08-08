@@ -1,17 +1,14 @@
 import {
   Body,
   Controller,
-  Get,
-  HttpException,
-  HttpStatus,
   InternalServerErrorException,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import { WildberriesService } from './wildberries.service';
-import { DownloadFourteenOrderDtoRequest } from './dto/download-fourteen-order.dto';
 import { SendCodeDtoRequest } from './dto/send-code.dto';
 import { SendPhoneNumberDtoRequest } from './dto/send-phone-number.dto';
+import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
 
 @Controller('wildberries')
 export class WildberriesController {
@@ -48,13 +45,7 @@ export class WildberriesController {
   }
 
   @Post('go-to-adverts')
-  async goToAdverts(@Body() dto: any) {
-    return await this.wildberriesService.goToAdverts(
-      dto.shop_name,
-      dto.advert_id,
-      dto.start_date,
-      dto.end_date,
-      dto.with_content,
-    );
+  async goToAdverts(@Body() dto: GoToAdvertsDto) {
+    return await this.wildberriesService.goToAdverts(dto);
   }
 }
