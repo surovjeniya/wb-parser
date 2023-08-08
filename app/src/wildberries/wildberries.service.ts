@@ -17,6 +17,7 @@ import {
   delay,
   getFileLink,
   keyboardPress,
+  parseXlsx,
   start,
 } from './utils/wildberries.utils';
 import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
@@ -133,6 +134,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
     shop_name,
     start_date,
     with_content,
+    parse_xlsx,
   }: GoToAdvertsDto) {
     const page = await this.changeShop(shop_name);
     try {
@@ -192,7 +194,12 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       if (with_content) {
         return content;
       } else {
-        return fileLink;
+        return {
+          fileLink,
+          parsedXlsxData:
+            parse_xlsx &&
+            (await parseXlsx(path.join(DOWNLOADS_DIR, uuid, fileName))),
+        };
       }
     } catch (error) {
       await page.browser().close();

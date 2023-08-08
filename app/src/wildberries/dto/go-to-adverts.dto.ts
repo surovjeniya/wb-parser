@@ -32,4 +32,8 @@ export class GoToAdvertsDto {
   @IsBoolean()
   @IsOptional()
   with_content?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  parse_xlsx?: boolean;
 }
