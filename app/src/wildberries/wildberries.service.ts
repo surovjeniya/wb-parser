@@ -145,9 +145,10 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
         waitUntil: 'load',
       });
-      await delay(5000);
-      await page.click('.icon__calendar');
-      await delay(2000);
+      // await delay(5000);
+      await page.waitForSelector('.icon__calendar', { visible: true });
+      await page.click('.icon__calendar', { delay: 500 });
+      // await delay(2000);
       const inputsElements = await page.$$(
         '.date-picker__period-calendar__input',
       );
