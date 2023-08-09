@@ -58,6 +58,7 @@ services:
       PORT: $INFRA_PARSER_API_PORT
       NODE_ENV: production
       TZ: Europe/Moscow
+      ROOT_PATH: INFRA_PARSER_API_ROOT_PATH
     networks:
      - infra
     ports:

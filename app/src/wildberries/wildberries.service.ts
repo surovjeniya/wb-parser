@@ -20,6 +20,7 @@ import {
   start,
 } from './utils/wildberries.utils';
 import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
+import { waitForDownload } from 'puppeteer-utilz';
 
 @Injectable()
 export class WildberriesService implements OnModuleInit, OnModuleDestroy {
@@ -43,7 +44,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
   }
 
   async changeShop(shop_name?: string): Promise<Page> {
-    const page = await this.browser.newPage();
+    const page: Page = await this.browser.newPage();
     try {
       await page.goto(
         'https://seller.wildberries.ru/login/ru/?redirect_url=/',
@@ -51,16 +52,20 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
           waitUntil: 'load',
         },
       );
-      await delay(3000);
-      await page.waitForSelector('.ProfileView').catch((error) => {
-        this.logger.error('changeShop', error.message);
-        page.close();
-        throw new InternalServerErrorException(
-          'Profile selector waiting error.',
-        );
-      });
-      await page.click('.ProfileView', { delay: 300 });
-      await delay(3000);
+
+      // await delay(3000);
+
+      await page
+        .waitForSelector('.ProfileView', { visible: true })
+        .catch((error) => {
+          this.logger.error('changeShop', error.message);
+          page.close();
+          throw new InternalServerErrorException(
+            'Profile selector waiting error.',
+          );
+        });
+      await page.click('.ProfileView', { delay: 1000 });
+      await delay(1000);
       const linkHandlers = await page.$x(
         `//span[contains(text(), "${shop_name}")]`,
       );
@@ -109,7 +114,16 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
     await delay(15000);
     if (this.code && this.code.length) {
       await keyboardPress(null, this.code.split('') as KeyInput[], page);
-      await delay(5000);
+      // await delay(5000)
+      await page
+        .waitForSelector('.ProfileView', { visible: true })
+        .catch((error) => {
+          this.logger.error('changeShop', error.message);
+          page.close();
+          throw new InternalServerErrorException(
+            'Profile selector waiting error.',
+          );
+        });
       const content = await page.content();
       await page.close();
 
@@ -171,10 +185,10 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       );
       //@ts-ignore
       await submitBtn[0].click();
-
       await page.evaluate(() => window.scroll(0, 0));
       await page.click('.icon__download');
-      await delay(3000);
+      await waitForDownload(path.join(DOWNLOADS_DIR, uuid));
+      // await delay(3000);
       const fileName = await fs.promises
         .readdir(path.join(DOWNLOADS_DIR, uuid), {
           withFileTypes: true,
@@ -196,16 +210,22 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       await page.close();
       if (with_content) {
         return content;
-      } else {
+      }
+
+      if (parse_xlsx) {
         return {
-          fileLink,
           parsedXlsxData:
             parse_xlsx &&
             (await parseXlsx(path.join(DOWNLOADS_DIR, uuid, fileName))),
         };
+      } else {
+        return {
+          fileLink,
+        };
       }
     } catch (error) {
       await page.close();
+
       console.error(`${this.goToAdverts.name}`, error.message);
     }
   }
