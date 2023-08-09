@@ -63,7 +63,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
         );
       });
       await page.click('.ProfileView', { delay: 1000 });
-      await delay(1000);
+      await delay(3000);
       const linkHandlers = await page.$x(
         `//span[contains(text(), "${shop_name}")]`,
       );
@@ -162,10 +162,11 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
         waitUntil: 'load',
       });
-      // await delay(5000);
+
+      await delay(5000);
       await page.waitForSelector('.icon__calendar', { visible: true });
       await page.click('.icon__calendar', { delay: 500 });
-      // await delay(2000);
+      await delay(2000);
       const inputsElements = await page.$$(
         '.date-picker__period-calendar__input',
       );
@@ -181,6 +182,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       const submitBtn = await page.$x(
         `//button[contains(text(), " Применить ")]`,
       );
+
       //@ts-ignore
       await submitBtn[0].click();
       await page.evaluate(() => window.scroll(0, 0));
