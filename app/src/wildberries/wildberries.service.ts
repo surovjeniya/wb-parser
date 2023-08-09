@@ -53,17 +53,15 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
         },
       );
 
-      // await delay(3000);
+      await delay(3000);
 
-      await page
-        .waitForSelector('.ProfileView', { visible: true })
-        .catch((error) => {
-          this.logger.error('changeShop', error.message);
-          page.close();
-          throw new InternalServerErrorException(
-            'Profile selector waiting error.',
-          );
-        });
+      await page.waitForSelector('.ProfileView').catch((error) => {
+        this.logger.error('changeShop', error.message);
+        page.close();
+        throw new InternalServerErrorException(
+          'Profile selector waiting error.',
+        );
+      });
       await page.click('.ProfileView', { delay: 1000 });
       await delay(1000);
       const linkHandlers = await page.$x(
