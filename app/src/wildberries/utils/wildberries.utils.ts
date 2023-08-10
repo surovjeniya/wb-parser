@@ -3,10 +3,11 @@ import {
   DOWNLOADS_DIR,
   NODE_ENV,
   SESSIONS_DIR,
+  SESSIONS_DIR_THREE,
+  SESSIONS_DIR_TWO,
 } from '../config/browser.config';
 import * as fs from 'fs';
 import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
-import * as path from 'path';
 import { InternalServerErrorException } from '@nestjs/common';
 import xlsx from 'node-xlsx';
 
@@ -62,12 +63,28 @@ export const getCookies = async (
   return cookies;
 };
 
-export const start = async (): Promise<Browser> => {
-  const browser = await puppeteer.launch(BROWSER_CONFIG).catch((error) => {
-    console.error(`${start.name}`, error.message);
-    throw new InternalServerErrorException('Browser start error');
-  });
-  return browser;
+export const start = async (): Promise<Browser[]> => {
+  const browsers = [];
+  const browserOne = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
+    .catch((error) => {
+      console.error(`${start.name}`, error.message);
+      throw new InternalServerErrorException('Browser start error');
+    });
+  const browserTwo = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
+    .catch((error) => {
+      console.error(`${start.name}`, error.message);
+      throw new InternalServerErrorException('Browser start error');
+    });
+  const browserThree = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
+    .catch((error) => {
+      console.error(`${start.name}`, error.message);
+      throw new InternalServerErrorException('Browser start error');
+    });
+  browsers.push(browserOne, browserThree, browserTwo);
+  return browsers;
 };
 
 function convertToObjects(data) {
@@ -101,4 +118,16 @@ export const parseXlsx = async (filePath: string) => {
   const data = convertToObjects(parsedXlsxData[0].data);
 
   return data;
+};
+
+export const randomInteger = (min: number, max: number): number => {
+  const rand = min + Math.random() * (max + 1 - min);
+  return Math.floor(rand);
+};
+
+let currentNumber = -1;
+
+export const getNextNumber = () => {
+  currentNumber = (currentNumber + 1) % 3;
+  return currentNumber;
 };
