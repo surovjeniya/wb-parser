@@ -17,10 +17,8 @@ export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
   env: NODE_ENV && {
     DISPLAY: ':10.0',
   },
-
-  headless: NODE_ENV ? 'new' : false,
+  headless: NODE_ENV ? true : true,
   ignoreHTTPSErrors: true,
-  // userDataDir: SESSIONS_DIR,
   executablePath: NODE_ENV && '/usr/bin/google-chrome',
   args: [
     '--disable-gpu',

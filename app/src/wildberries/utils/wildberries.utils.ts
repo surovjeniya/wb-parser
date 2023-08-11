@@ -8,8 +8,15 @@ import {
 } from '../config/browser.config';
 import * as fs from 'fs';
 import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
-import { InternalServerErrorException } from '@nestjs/common';
 import xlsx from 'node-xlsx';
+import * as child_process from 'child_process';
+import * as path from 'path';
+
+export const SESSIONS_DIRS = {
+  '0': SESSIONS_DIR,
+  '1': SESSIONS_DIR_TWO,
+  '2': SESSIONS_DIR_THREE,
+};
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
@@ -23,9 +30,23 @@ export const createDownloadsDir = (): string => {
   return DOWNLOADS_DIR;
 };
 
-export const createSessionsDir = (): string => {
-  if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR);
-  return SESSIONS_DIR;
+export const copyWithRsync = async (
+  from: string,
+  to: string,
+): Promise<void> => {
+  child_process
+    .spawn('rsync', ['-lr', `${from}/`, `${to}/`])
+    .on('error', (error) =>
+      console.log(error.message, 'Error in copyWithRsync'),
+    );
+};
+
+export const createSessionsDir = (): string[] => {
+  const sessionsDirs = [SESSIONS_DIR, SESSIONS_DIR_TWO, SESSIONS_DIR_THREE];
+  for (let i = 0; i < sessionsDirs.length; i++) {
+    if (!fs.existsSync(sessionsDirs[i])) fs.mkdirSync(sessionsDirs[i]);
+  }
+  return sessionsDirs;
 };
 
 export const delay = (ms: number): Promise<unknown> => {
@@ -65,26 +86,37 @@ export const getCookies = async (
 
 export const start = async (): Promise<Browser[]> => {
   const browsers = [];
-  const browserOne = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
-    .catch((error) => {
-      console.error(`${start.name}`, error.message);
-      throw new InternalServerErrorException('Browser start error');
-    });
-  const browserTwo = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
-    .catch((error) => {
-      console.error(`${start.name}`, error.message);
-      throw new InternalServerErrorException('Browser start error');
-    });
-  const browserThree = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
-    .catch((error) => {
-      console.error(`${start.name}`, error.message);
-      throw new InternalServerErrorException('Browser start error');
-    });
-  browsers.push(browserOne, browserThree, browserTwo);
-  return browsers;
+  try {
+    const browserOne = await puppeteer
+      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
+      .catch((error) => {
+        console.log('Error from launch 1', error.message);
+        fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
+          recursive: true,
+        });
+      });
+    const browserTwo = await puppeteer
+      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
+      .catch((error) => {
+        console.log('Error from launch 2', error.message);
+        fs.promises.rm(path.join(SESSIONS_DIR_TWO, 'SingletonLock'), {
+          recursive: true,
+        });
+      });
+    const browserThree = await puppeteer
+      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
+      .catch((error) => {
+        console.log('Error from launch 3', error.message);
+        fs.promises.rm(path.join(SESSIONS_DIR_THREE, 'SingletonLock'), {
+          recursive: true,
+        });
+      });
+    browsers.push(browserOne, browserTwo, browserThree);
+
+    return browsers;
+  } catch (error) {
+    console.log(error, 'ssd');
+  }
 };
 
 function convertToObjects(data) {
@@ -118,11 +150,6 @@ export const parseXlsx = async (filePath: string) => {
   const data = convertToObjects(parsedXlsxData[0].data);
 
   return data;
-};
-
-export const randomInteger = (min: number, max: number): number => {
-  const rand = min + Math.random() * (max + 1 - min);
-  return Math.floor(rand);
 };
 
 let currentNumber = -1;
