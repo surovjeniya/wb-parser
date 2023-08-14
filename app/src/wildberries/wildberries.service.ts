@@ -18,6 +18,7 @@ import {
 } from './config/browser.config';
 import {
   SESSIONS_DIRS,
+  copyWithRecursive,
   copyWithRsync,
   createDownloadsDir,
   createSessionsDir,
@@ -129,6 +130,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
         });
 
       const content = await page.content();
+
       // copy session files
       await copyWithRsync(SESSIONS_DIR, SESSIONS_DIR_TWO);
       await copyWithRsync(SESSIONS_DIR, SESSIONS_DIR_THREE);

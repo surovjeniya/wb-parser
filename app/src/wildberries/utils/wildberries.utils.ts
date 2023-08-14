@@ -30,6 +30,13 @@ export const createDownloadsDir = (): string => {
   return DOWNLOADS_DIR;
 };
 
+export const copyWithRecursive = async (
+  from: string,
+  to: string,
+): Promise<void> => {
+  return await fs.promises.cp(from, to, { recursive: true });
+};
+
 export const copyWithRsync = async (
   from: string,
   to: string,
@@ -38,6 +45,12 @@ export const copyWithRsync = async (
     .spawn('rsync', ['-lr', `${from}/`, `${to}/`])
     .on('error', (error) =>
       console.log(error.message, 'Error in copyWithRsync'),
+    )
+    .on('exit', (code, signal) =>
+      console.log('child process exit', code, signal),
+    )
+    .on('message', (message, handler) =>
+      console.log('child process message', message, handler),
     );
 };
 
@@ -86,37 +99,25 @@ export const getCookies = async (
 
 export const start = async (): Promise<Browser[]> => {
   const browsers = [];
-  try {
-    const browserOne = await puppeteer
-      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
-      .catch((error) => {
-        console.log('Error from launch 1', error.message);
-        fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
-          recursive: true,
-        });
-      });
-    const browserTwo = await puppeteer
-      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
-      .catch((error) => {
-        console.log('Error from launch 2', error.message);
-        fs.promises.rm(path.join(SESSIONS_DIR_TWO, 'SingletonLock'), {
-          recursive: true,
-        });
-      });
-    const browserThree = await puppeteer
-      .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
-      .catch((error) => {
-        console.log('Error from launch 3', error.message);
-        fs.promises.rm(path.join(SESSIONS_DIR_THREE, 'SingletonLock'), {
-          recursive: true,
-        });
-      });
-    browsers.push(browserOne, browserTwo, browserThree);
 
-    return browsers;
-  } catch (error) {
-    console.log(error, 'ssd');
-  }
+  const browserOne = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
+    .catch((error) => {
+      console.log('Error from launch 1', error.message);
+    });
+  const browserTwo = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
+    .catch((error) => {
+      console.log('Error from launch 2', error.message);
+    });
+  const browserThree = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
+    .catch((error) => {
+      console.log('Error from launch 3', error.message);
+    });
+  browsers.push(browserOne, browserTwo, browserThree);
+
+  return browsers;
 };
 
 function convertToObjects(data) {
