@@ -10,15 +10,15 @@ export const DOWNLOADS_DIR = path.join(
   'downloads',
 );
 export const SESSIONS_DIR = path.join(DOWNLOADS_DIR, 'sessions');
+export const SESSIONS_DIR_TWO = path.join(DOWNLOADS_DIR, 'sessions_two');
+export const SESSIONS_DIR_THREE = path.join(DOWNLOADS_DIR, 'sessions_three');
 
 export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
   env: NODE_ENV && {
     DISPLAY: ':10.0',
   },
-
-  headless: NODE_ENV ? 'new' : false,
+  headless: NODE_ENV ? true : true,
   ignoreHTTPSErrors: true,
-  userDataDir: SESSIONS_DIR,
   executablePath: NODE_ENV && '/usr/bin/google-chrome',
   args: [
     '--disable-gpu',

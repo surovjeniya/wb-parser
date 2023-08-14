@@ -3,12 +3,20 @@ import {
   DOWNLOADS_DIR,
   NODE_ENV,
   SESSIONS_DIR,
+  SESSIONS_DIR_THREE,
+  SESSIONS_DIR_TWO,
 } from '../config/browser.config';
 import * as fs from 'fs';
 import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
-import * as path from 'path';
-import { InternalServerErrorException } from '@nestjs/common';
 import xlsx from 'node-xlsx';
+import * as child_process from 'child_process';
+import * as path from 'path';
+
+export const SESSIONS_DIRS = {
+  '0': SESSIONS_DIR,
+  '1': SESSIONS_DIR_TWO,
+  '2': SESSIONS_DIR_THREE,
+};
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
@@ -22,9 +30,36 @@ export const createDownloadsDir = (): string => {
   return DOWNLOADS_DIR;
 };
 
-export const createSessionsDir = (): string => {
-  if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR);
-  return SESSIONS_DIR;
+export const copyWithRecursive = async (
+  from: string,
+  to: string,
+): Promise<void> => {
+  return await fs.promises.cp(from, to, { recursive: true });
+};
+
+export const copyWithRsync = async (
+  from: string,
+  to: string,
+): Promise<void> => {
+  child_process
+    .spawn('rsync', ['-lr', `${from}/`, `${to}/`])
+    .on('error', (error) =>
+      console.log(error.message, 'Error in copyWithRsync'),
+    )
+    .on('exit', (code, signal) =>
+      console.log('child process exit', code, signal),
+    )
+    .on('message', (message, handler) =>
+      console.log('child process message', message, handler),
+    );
+};
+
+export const createSessionsDir = (): string[] => {
+  const sessionsDirs = [SESSIONS_DIR, SESSIONS_DIR_TWO, SESSIONS_DIR_THREE];
+  for (let i = 0; i < sessionsDirs.length; i++) {
+    if (!fs.existsSync(sessionsDirs[i])) fs.mkdirSync(sessionsDirs[i]);
+  }
+  return sessionsDirs;
 };
 
 export const delay = (ms: number): Promise<unknown> => {
@@ -62,12 +97,27 @@ export const getCookies = async (
   return cookies;
 };
 
-export const start = async (): Promise<Browser> => {
-  const browser = await puppeteer.launch(BROWSER_CONFIG).catch((error) => {
-    console.error(`${start.name}`, error.message);
-    throw new InternalServerErrorException('Browser start error');
-  });
-  return browser;
+export const start = async (): Promise<Browser[]> => {
+  const browsers = [];
+
+  const browserOne = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
+    .catch((error) => {
+      console.log('Error from launch 1', error.message);
+    });
+  const browserTwo = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
+    .catch((error) => {
+      console.log('Error from launch 2', error.message);
+    });
+  const browserThree = await puppeteer
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
+    .catch((error) => {
+      console.log('Error from launch 3', error.message);
+    });
+  browsers.push(browserOne, browserTwo, browserThree);
+
+  return browsers;
 };
 
 function convertToObjects(data) {
@@ -101,4 +151,11 @@ export const parseXlsx = async (filePath: string) => {
   const data = convertToObjects(parsedXlsxData[0].data);
 
   return data;
+};
+
+let currentNumber = -1;
+
+export const getNextNumber = () => {
+  currentNumber = (currentNumber + 1) % 3;
+  return currentNumber;
 };
