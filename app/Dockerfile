@@ -9,9 +9,6 @@ RUN apt-get update && apt-get install gnupg wget rsync -y && \
     apt-get install google-chrome-stable -y --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install rsync
-
-
 WORKDIR /usr/src/app
 
 COPY package*.json ./
