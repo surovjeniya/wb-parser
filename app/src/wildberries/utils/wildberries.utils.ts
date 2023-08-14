@@ -2,21 +2,12 @@ import {
   BROWSER_CONFIG,
   DOWNLOADS_DIR,
   NODE_ENV,
-  SESSIONS_DIR,
-  SESSIONS_DIR_THREE,
-  SESSIONS_DIR_TWO,
+  SESSIONS_DIRS,
 } from '../config/browser.config';
 import * as fs from 'fs';
 import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
 import xlsx from 'node-xlsx';
 import * as child_process from 'child_process';
-import * as path from 'path';
-
-export const SESSIONS_DIRS = {
-  '0': SESSIONS_DIR,
-  '1': SESSIONS_DIR_TWO,
-  '2': SESSIONS_DIR_THREE,
-};
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
@@ -28,13 +19,6 @@ export const getFileLink = (fileName: string, uuid: string): string => {
 export const createDownloadsDir = (): string => {
   if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR);
   return DOWNLOADS_DIR;
-};
-
-export const copyWithRecursive = async (
-  from: string,
-  to: string,
-): Promise<void> => {
-  return await fs.promises.cp(from, to, { recursive: true });
 };
 
 export const copyWithRsync = async (
@@ -55,7 +39,7 @@ export const copyWithRsync = async (
 };
 
 export const createSessionsDir = (): string[] => {
-  const sessionsDirs = [SESSIONS_DIR, SESSIONS_DIR_TWO, SESSIONS_DIR_THREE];
+  const sessionsDirs = Object.values(SESSIONS_DIRS);
   for (let i = 0; i < sessionsDirs.length; i++) {
     if (!fs.existsSync(sessionsDirs[i])) fs.mkdirSync(sessionsDirs[i]);
   }
@@ -101,17 +85,17 @@ export const start = async (): Promise<Browser[]> => {
   const browsers = [];
 
   const browserOne = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR })
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[0] })
     .catch((error) => {
       console.log('Error from launch 1', error.message);
     });
   const browserTwo = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_TWO })
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[1] })
     .catch((error) => {
       console.log('Error from launch 2', error.message);
     });
   const browserThree = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIR_THREE })
+    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[2] })
     .catch((error) => {
       console.log('Error from launch 3', error.message);
     });

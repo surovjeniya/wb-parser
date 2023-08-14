@@ -10,15 +10,8 @@ import { Browser, KeyInput, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
+import { DOWNLOADS_DIR, SESSIONS_DIRS } from './config/browser.config';
 import {
-  DOWNLOADS_DIR,
-  SESSIONS_DIR,
-  SESSIONS_DIR_THREE,
-  SESSIONS_DIR_TWO,
-} from './config/browser.config';
-import {
-  SESSIONS_DIRS,
-  copyWithRecursive,
   copyWithRsync,
   createDownloadsDir,
   createSessionsDir,
@@ -60,14 +53,13 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
           waitUntil: 'load',
         },
       );
-
       await delay(3000);
       await page
         .waitForSelector('.ProfileView', { timeout: 15000 })
         .catch((error) => {
           if (browserIdx !== 0) {
             const candidateSessions = SESSIONS_DIRS[browserIdx.toString()];
-            copyWithRsync(SESSIONS_DIR, candidateSessions);
+            copyWithRsync(SESSIONS_DIRS[0], candidateSessions);
           }
           this.logger.error(`changeShop >> ${browserIdx}`, error.message);
           throw new InternalServerErrorException('Wait profile view error.');
@@ -91,10 +83,12 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
     for await (const browser of this.browser.slice(1) as Browser[]) {
       await browser.close();
     }
-
     // create new page with in primary browser
     const page: Page = await this.browser[0].newPage();
-    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/');
+
+    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
+      waitUntil: 'domcontentloaded',
+    });
     await page.click(
       'img[src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMTAiIGZpbGw9IiMwMDM5QTUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC4wODY1IDE5Ljk5OTZIOS45MTM1QzkuOTQyMyAxOS45OTk5IDkuOTcxMTMgMjAgOS45OTk5OSAyMEMxMC4wMjg4IDIwIDEwLjA1NzcgMTkuOTk5OSAxMC4wODY1IDE5Ljk5OTZaTTE5LjUzMTIgNi45NjUzM0gwLjQ2ODc1QzEuNzUzNjcgMi45MjYxNCA1LjUzNTExIDAgOS45OTk5OSAwQzE0LjQ2NDkgMCAxOC4yNDYzIDIuOTI2MTQgMTkuNTMxMiA2Ljk2NTMzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ0MTQwNiAxMi45NDI0QzEuNjk3NjkgMTcuMDI5MyA1LjUwMjY5IDIwLjAwMDIgMTAuMDAxNiAyMC4wMDAyQzE0LjUwMDUgMjAuMDAwMiAxOC4zMDU1IDE3LjAyOTMgMTkuNTYxNyAxMi45NDI0SDAuNDQxNDA2WiIgZmlsbD0iI0Q1MkExRCIvPgo8L3N2Zz4K"]',
       {
@@ -132,11 +126,11 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       const content = await page.content();
 
       // copy session files
-      await copyWithRsync(SESSIONS_DIR, SESSIONS_DIR_TWO);
-      await copyWithRsync(SESSIONS_DIR, SESSIONS_DIR_THREE);
-      // close primary browser
-      await this.browser[0].close();
-
+      for await (const i of Object.values(SESSIONS_DIRS).slice(1)) {
+        await copyWithRsync(SESSIONS_DIRS[0], i);
+      }
+      // close browsers
+      await this.onModuleDestroy();
       //open all browsers
       await this.onModuleInit();
       return content;
@@ -163,6 +157,7 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
     parse_xlsx,
   }: GoToAdvertsDto) {
     const page = await this.changeShop(shop_name);
+
     try {
       const uuid = v4();
       const client = await page.target().createCDPSession();
