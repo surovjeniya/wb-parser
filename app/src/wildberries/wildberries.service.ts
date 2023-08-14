@@ -141,17 +141,8 @@ export class WildberriesService implements OnModuleInit, OnModuleDestroy {
       await this.onModuleInit();
       return content;
     } else {
-      fs.existsSync(path.join(SESSIONS_DIR, 'SingletonLock')) &&
-        fs.promises.rm(path.join(SESSIONS_DIR_TWO, 'SingletonLock'), {
-          recursive: true,
-        });
-      fs.promises.rm(path.join(SESSIONS_DIR, 'SingletonLock'), {
-        recursive: true,
-      });
-      fs.promises.rm(path.join(SESSIONS_DIR_THREE, 'SingletonLock'), {
-        recursive: true,
-      });
-      page.close();
+      await this.onModuleDestroy();
+      await this.onModuleInit();
       throw new UnauthorizedException(
         'Code is empty. Input time is 15 seconds.Try signin again.',
       );
