@@ -23,6 +23,11 @@ services:
     restart: unless-stopped
     networks:
      - infra
+    depends_on:
+      - browserless_two
+      - browserless_one
+      - browserless_three
+      - parser-api-service
 
   parser-api-service:
     image: $INFRA_PARSER_API_IMAGE
@@ -30,9 +35,12 @@ services:
     build: 
       context: ../app
       dockerfile: Dockerfile
+      target: development
+    command: npm run start:dev
     restart: unless-stopped
     volumes:
       - downloads:/usr/src/app/downloads
+      - ../app:/usr/src/app
     environment:
       HOST_NAME: $INFRA_PARSER_HOSTNAME
       PORT: $INFRA_PARSER_API_PORT
@@ -51,11 +59,11 @@ services:
       - PORT=${INFRA_BROWSERLESS_TWO_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
     restart: unless-stopped
     networks:
       - infra
-    depends_on:
-      - nginx-service
     ports:
       - "${INFRA_BROWSERLESS_TWO_PORT}:${INFRA_BROWSERLESS_TWO_PORT}"
 
@@ -69,11 +77,11 @@ services:
       - PORT=${INFRA_BROWSERLESS_THREE_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
     restart: unless-stopped
     networks:
       - infra
-    depends_on:
-      - nginx-service
     ports:
       - "${INFRA_BROWSERLESS_THREE_PORT}:${INFRA_BROWSERLESS_THREE_PORT}"
 
@@ -87,10 +95,10 @@ services:
       - PORT=${INFRA_BROWSERLESS_ONE_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
     restart: unless-stopped
     networks:
       - infra
-    depends_on:
-      - nginx-service
     ports:
       - "${INFRA_BROWSERLESS_ONE_PORT}:${INFRA_BROWSERLESS_ONE_PORT}"

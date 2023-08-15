@@ -2,11 +2,9 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
-  OnModuleDestroy,
-  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Browser, KeyInput, Page } from 'puppeteer';
+import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 } from 'uuid';
@@ -27,22 +25,14 @@ import { waitForDownload } from 'puppeteer-utilz';
 
 @Injectable()
 export class WildberriesService {
-  // private code = null;
-  // private readonly logger = new Logger(WildberriesService.name);
-  // private browser: Browser[] | any = null;
-  // async onModuleDestroy(): Promise<any> {
-  //   for await (const browser of this.browser as Browser[]) {
-  //     await browser.close();
-  //   }
-  // }
-  // async onModuleInit(): Promise<void> {
-  //   createDownloadsDir();
-  //   createSessionsDir();
-  //   this.browser = await start();
-  // }
+  private code = null;
+  private readonly logger = new Logger(WildberriesService.name);
+
   // async changeShop(shop_name?: string): Promise<Page> {
-  //   const browserIdx = getNextNumber();
-  //   const page: Page = await this.browser[browserIdx].newPage();
+  //   const browserIdx = await puppeteer.connect({
+  //     browserWSEndpoint: 'ws://nginx-service:80',
+  //   });
+  //   const page: Page = await newPage();
   //   try {
   //     await page.goto(
   //       'https://seller.wildberries.ru/login/ru/?redirect_url=/',
@@ -74,69 +64,91 @@ export class WildberriesService {
   //     await page.close();
   //   }
   // }
-  // async sendPhoneNumber(phone_number: string) {
-  //   // close browsers
-  //   for await (const browser of this.browser.slice(1) as Browser[]) {
-  //     await browser.close();
-  //   }
-  //   // create new page with in primary browser
-  //   const page: Page = await this.browser[0].newPage();
-  //   await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
-  //     waitUntil: 'domcontentloaded',
-  //   });
-  //   await page.click(
-  //     'img[src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMTAiIGZpbGw9IiMwMDM5QTUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC4wODY1IDE5Ljk5OTZIOS45MTM1QzkuOTQyMyAxOS45OTk5IDkuOTcxMTMgMjAgOS45OTk5OSAyMEMxMC4wMjg4IDIwIDEwLjA1NzcgMTkuOTk5OSAxMC4wODY1IDE5Ljk5OTZaTTE5LjUzMTIgNi45NjUzM0gwLjQ2ODc1QzEuNzUzNjcgMi45MjYxNCA1LjUzNTExIDAgOS45OTk5OSAwQzE0LjQ2NDkgMCAxOC4yNDYzIDIuOTI2MTQgMTkuNTMxMiA2Ljk2NTMzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ0MTQwNiAxMi45NDI0QzEuNjk3NjkgMTcuMDI5MyA1LjUwMjY5IDIwLjAwMDIgMTAuMDAxNiAyMC4wMDAyQzE0LjUwMDUgMjAuMDAwMiAxOC4zMDU1IDE3LjAyOTMgMTkuNTYxNyAxMi45NDI0SDAuNDQxNDA2WiIgZmlsbD0iI0Q1MkExRCIvPgo8L3N2Zz4K"]',
-  //     {
-  //       delay: 100,
-  //     },
-  //   );
-  //   await page.click('button[value="by"]', {
-  //     delay: 100,
-  //   });
-  //   await page.click('input[autocomplete="new-password"]', {
-  //     delay: 100,
-  //   });
-  //   await page.type('input[autocomplete="new-password"]', phone_number, {
-  //     delay: 100,
-  //   });
-  //   await page.click('button[type="submit"]', {
-  //     delay: 500,
-  //   });
-  //   await page.click('input[inputmode="numeric"]', { delay: 500 });
-  //   await delay(15000);
-  //   if (this.code && this.code.length) {
-  //     await keyboardPress(null, this.code.split('') as KeyInput[], page);
-  //     // await delay(5000)
-  //     await page
-  //       .waitForSelector('.ProfileView', { visible: true, timeout: 60000 })
-  //       .catch((error) => {
-  //         this.logger.error('ProfileView', error.message);
-  //         throw new InternalServerErrorException(
-  //           'Profile selector waiting error.',
-  //         );
-  //       });
-  //     const content = await page.content();
-  //     // copy session files
-  //     for await (const i of Object.values(SESSIONS_DIRS).slice(1)) {
-  //       await copyWithRsync(SESSIONS_DIRS[0], i);
-  //     }
-  //     // close browsers
-  //     await this.onModuleDestroy();
-  //     //open all browsers
-  //     await this.onModuleInit();
-  //     return content;
-  //   } else {
-  //     await this.onModuleDestroy();
-  //     await this.onModuleInit();
-  //     throw new UnauthorizedException(
-  //       'Code is empty. Input time is 15 seconds.Try signin again.',
-  //     );
-  //   }
-  // }
-  // async sendCode(code: string): Promise<string> {
-  //   this.code = code;
-  //   return this.code;
-  // }
+
+  async switchBrowser(browser_idx: 'one' | 'two' | 'three'): Promise<Browser> {
+    let browser: Browser;
+    switch (browser_idx) {
+      case 'one':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_one:3001',
+        });
+        break;
+      case 'two':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_two:3002',
+        });
+        break;
+      case 'three':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_three:3003',
+        });
+        break;
+      default:
+        break;
+    }
+    return browser;
+  }
+
+  async sendPhoneNumber(
+    phone_number: string,
+    browser_idx: 'one' | 'two' | 'three',
+  ) {
+    let content: Awaited<string>;
+    const browser = await this.switchBrowser(browser_idx);
+    const page: Page = await browser.newPage();
+    await page.goto('https://seller.wildberries.ru/login/ru/?redirect_url=/', {
+      waitUntil: 'load',
+    });
+    await page
+      .click(
+        'img[src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMTAiIGZpbGw9IiMwMDM5QTUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC4wODY1IDE5Ljk5OTZIOS45MTM1QzkuOTQyMyAxOS45OTk5IDkuOTcxMTMgMjAgOS45OTk5OSAyMEMxMC4wMjg4IDIwIDEwLjA1NzcgMTkuOTk5OSAxMC4wODY1IDE5Ljk5OTZaTTE5LjUzMTIgNi45NjUzM0gwLjQ2ODc1QzEuNzUzNjcgMi45MjYxNCA1LjUzNTExIDAgOS45OTk5OSAwQzE0LjQ2NDkgMCAxOC4yNDYzIDIuOTI2MTQgMTkuNTMxMiA2Ljk2NTMzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ0MTQwNiAxMi45NDI0QzEuNjk3NjkgMTcuMDI5MyA1LjUwMjY5IDIwLjAwMDIgMTAuMDAxNiAyMC4wMDAyQzE0LjUwMDUgMjAuMDAwMiAxOC4zMDU1IDE3LjAyOTMgMTkuNTYxNyAxMi45NDI0SDAuNDQxNDA2WiIgZmlsbD0iI0Q1MkExRCIvPgo8L3N2Zz4K"]',
+        {
+          delay: 100,
+        },
+      )
+      .then(() => page.click('button[value="by"]', { delay: 100 }))
+      .then(() =>
+        page.click('input[autocomplete="new-password"]', {
+          delay: 100,
+        }),
+      )
+      .then(() =>
+        page.type('input[autocomplete="new-password"]', phone_number, {
+          delay: 100,
+        }),
+      )
+      .then(() =>
+        page.click('button[type="submit"]', {
+          delay: 500,
+        }),
+      )
+      .then(() => page.click('input[inputmode="numeric"]', { delay: 500 }));
+    await delay(15000);
+    if (this.code) {
+      await keyboardPress(null, this.code.split('') as KeyInput[], page);
+      this.code = null;
+      await page
+        .waitForSelector('.ProfileView', { visible: true, timeout: 60000 })
+        .catch((error) => {
+          this.logger.error('ProfileView', error.message);
+          throw new InternalServerErrorException(
+            'Profile selector waiting error.',
+          );
+        });
+      content = await page.content();
+      await browser.close();
+      return content;
+    } else {
+      await browser.close();
+      throw new UnauthorizedException('Code in empty.');
+    }
+  }
+
+  async sendCode(code: string): Promise<string> {
+    this.code = code;
+    return this.code;
+  }
+
   // async goToAdverts({
   //   advert_id,
   //   end_date,
