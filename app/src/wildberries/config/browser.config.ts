@@ -23,6 +23,7 @@ export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
   headless: NODE_ENV ? true : false,
   ignoreHTTPSErrors: true,
   executablePath: NODE_ENV && '/usr/bin/google-chrome',
+  devtools: NODE_ENV ? false : true,
   args: [
     '--disable-gpu',
     '--disable-dev-shm-usage',

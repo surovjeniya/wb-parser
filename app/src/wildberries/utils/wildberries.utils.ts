@@ -58,6 +58,7 @@ export const keyboardPress = async (
   if (key) {
     await page.keyboard.press(key, { delay: 50 });
   }
+
   if (keys && keys.length) {
     for await (const key of keys) {
       await page.keyboard.press(key, { delay: 50 });
@@ -83,28 +84,22 @@ export const getCookies = async (
 
 export const start = async (): Promise<Browser[]> => {
   const browsers = [];
-
-  const browserOne = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[0] })
-    .catch((error) => {
-      console.log('Error from launch 1', error.message);
-    });
-  const browserTwo = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[1] })
-    .catch((error) => {
-      console.log('Error from launch 2', error.message);
-    });
-  const browserThree = await puppeteer
-    .launch({ ...BROWSER_CONFIG, userDataDir: SESSIONS_DIRS[2] })
-    .catch((error) => {
-      console.log('Error from launch 3', error.message);
-    });
-  browsers.push(browserOne, browserTwo, browserThree);
+  for await (const [index, value] of Object.values(SESSIONS_DIRS).entries()) {
+    const browser = await puppeteer
+      .launch({
+        ...BROWSER_CONFIG,
+        userDataDir: SESSIONS_DIRS[index],
+      })
+      .catch((error) =>
+        console.log(`Error from launch ${index}`, error.message),
+      );
+    browsers.push(browser);
+  }
 
   return browsers;
 };
 
-function convertToObjects(data) {
+function convertToObjects(data): Array<any> {
   const keys = data[0]; // Получаем ключи из первого вложенного массива
   const objects = [];
 
@@ -122,7 +117,7 @@ function convertToObjects(data) {
   return objects;
 }
 
-export const parseXlsx = async (filePath: string) => {
+export const parseXlsx = async (filePath: string): Promise<Array<any>> => {
   const parsedXlsxData: {
     name: string;
     data: any[][];
@@ -139,7 +134,7 @@ export const parseXlsx = async (filePath: string) => {
 
 let currentNumber = -1;
 
-export const getNextNumber = () => {
+export const getNextNumber = (): number => {
   currentNumber = (currentNumber + 1) % 3;
   return currentNumber;
 };
