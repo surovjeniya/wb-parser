@@ -5,6 +5,15 @@ networks:
     name: $INFRA_NETWORK
     driver: bridge
 volumes:
+  sessions-one:
+    driver: local
+    name: ${INFRA_BROWSERLESS_ONE_SESSIONS_VOLUME}
+  sessions-two:
+    driver: local
+    name: ${INFRA_BROWSERLESS_TWO_SESSIONS_VOLUME}
+  sessions-three:
+    driver: local
+    name: ${INFRA_BROWSERLESS_THREE_SESSIONS_VOLUME}
   downloads:
     name: $INFRA_DOWNLOADS_VOLUME
     driver: local
@@ -35,13 +44,12 @@ services:
     build: 
       context: ../app
       dockerfile: Dockerfile
-      target: development
-    command: npm run start:dev
+      target: production
     restart: unless-stopped
     volumes:
       - downloads:/usr/src/app/downloads
-      - ../app:/usr/src/app
     environment:
+      WORKSPACE_DIR: ${INFRA_BROWSERLESS_WORKSPACE_DIR}
       HOST_NAME: $INFRA_PARSER_HOSTNAME
       PORT: $INFRA_PARSER_API_PORT
       NODE_ENV: production
@@ -56,11 +64,16 @@ services:
       context: ../browserless
       dockerfile: Dockerfile
     environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
       - PORT=${INFRA_BROWSERLESS_TWO_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
       - EXIT_ON_HEALTH_FAILURE=true
       - WORKSPACE_DELETE_EXPIRED=true
+    volumes:
+      - sessions-two:/usr/src/app/sessions
     restart: unless-stopped
     networks:
       - infra
@@ -74,12 +87,17 @@ services:
       context: ../browserless
       dockerfile: Dockerfile
     environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
       - PORT=${INFRA_BROWSERLESS_THREE_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
       - EXIT_ON_HEALTH_FAILURE=true
       - WORKSPACE_DELETE_EXPIRED=true
     restart: unless-stopped
+    volumes:
+      - sessions-three:/usr/src/app/sessions
     networks:
       - infra
     ports:
@@ -92,12 +110,17 @@ services:
       context: ../browserless
       dockerfile: Dockerfile
     environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
       - PORT=${INFRA_BROWSERLESS_ONE_PORT}
       - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
       - PRE_REQUEST_HEALTH_CHECK=true
       - EXIT_ON_HEALTH_FAILURE=true
       - WORKSPACE_DELETE_EXPIRED=true
     restart: unless-stopped
+    volumes:
+      - sessions-one:/usr/src/app/sessions
     networks:
       - infra
     ports:

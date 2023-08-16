@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
@@ -14,6 +15,8 @@ import {
   createDownloadsDir,
   createSessionsDir,
   delay,
+  downloadXlsx,
+  findFileOnServer,
   getFileLink,
   getNextNumber,
   keyboardPress,
@@ -22,48 +25,46 @@ import {
 } from './utils/wildberries.utils';
 import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
 import { waitForDownload } from 'puppeteer-utilz';
+import axios from 'axios';
 
 @Injectable()
 export class WildberriesService {
   private code = null;
   private readonly logger = new Logger(WildberriesService.name);
 
-  // async changeShop(shop_name?: string): Promise<Page> {
-  //   const browserIdx = await puppeteer.connect({
-  //     browserWSEndpoint: 'ws://nginx-service:80',
-  //   });
-  //   const page: Page = await newPage();
-  //   try {
-  //     await page.goto(
-  //       'https://seller.wildberries.ru/login/ru/?redirect_url=/',
-  //       {
-  //         waitUntil: 'load',
-  //       },
-  //     );
-  //     await delay(3000);
-  //     await page
-  //       .waitForSelector('.ProfileView', { timeout: 15000 })
-  //       .catch((error) => {
-  //         if (browserIdx !== 0) {
-  //           const candidateSessions = SESSIONS_DIRS[browserIdx.toString()];
-  //           copyWithRsync(SESSIONS_DIRS[0], candidateSessions);
-  //         }
-  //         this.logger.error(`changeShop >> ${browserIdx}`, error.message);
-  //         throw new InternalServerErrorException('Wait profile view error.');
-  //       });
-  //     await page.click('.ProfileView', { delay: 1000 });
-  //     await delay(3000);
-  //     const linkHandlers = await page.$x(
-  //       `//span[contains(text(), "${shop_name}")]`,
-  //     );
-  //     //@ts-ignore
-  //     linkHandlers.length && (await linkHandlers[0].click());
-  //     await delay(1000);
-  //     return page;
-  //   } catch (error) {
-  //     await page.close();
-  //   }
-  // }
+  async changeShop(shop_name?: string): Promise<Page> {
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: 'ws://nginx-service:80',
+    });
+    const page: Page = await browser.newPage();
+    try {
+      await page.goto(
+        'https://seller.wildberries.ru/login/ru/?redirect_url=/',
+        {
+          waitUntil: 'load',
+        },
+      );
+      await delay(3000);
+      await page
+        .waitForSelector('.ProfileView', { timeout: 15000 })
+        .catch((error) => {
+          browser.close();
+          this.logger.error(`changeShop >> `, error.message);
+          throw new InternalServerErrorException('Wait profile view error.');
+        });
+      await page.click('.ProfileView', { delay: 1000 });
+      await delay(3000);
+      const linkHandlers = await page.$x(
+        `//span[contains(text(), "${shop_name}")]`,
+      );
+      //@ts-ignore
+      linkHandlers.length && (await linkHandlers[0].click());
+      await delay(1000);
+      return page;
+    } catch (error) {
+      await page.browser().close();
+    }
+  }
 
   async switchBrowser(browser_idx: 'one' | 'two' | 'three'): Promise<Browser> {
     let browser: Browser;
@@ -130,6 +131,7 @@ export class WildberriesService {
       await page
         .waitForSelector('.ProfileView', { visible: true, timeout: 60000 })
         .catch((error) => {
+          browser.close();
           this.logger.error('ProfileView', error.message);
           throw new InternalServerErrorException(
             'Profile selector waiting error.',
@@ -149,82 +151,79 @@ export class WildberriesService {
     return this.code;
   }
 
-  // async goToAdverts({
-  //   advert_id,
-  //   end_date,
-  //   shop_name,
-  //   start_date,
-  //   with_content,
-  //   parse_xlsx,
-  // }: GoToAdvertsDto) {
-  //   const page = await this.changeShop(shop_name);
-  //   try {
-  //     const uuid = v4();
-  //     const client = await page.target().createCDPSession();
-  //     await client.send('Page.setDownloadBehavior', {
-  //       behavior: 'allow',
-  //       downloadPath: path.join(DOWNLOADS_DIR, uuid),
-  //     });
-  //     await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
-  //       waitUntil: 'load',
-  //     });
-  //     await delay(5000);
-  //     await page.waitForSelector('.icon__calendar', { visible: true });
-  //     await page.click('.icon__calendar', { delay: 500 });
-  //     await delay(2000);
-  //     const inputsElements = await page.$$(
-  //       '.date-picker__period-calendar__input',
-  //     );
-  //     await inputsElements[0].click({ count: 3 });
-  //     await keyboardPress('Backspace', null, page);
-  //     await keyboardPress(null, start_date.split('') as KeyInput[], page);
-  //     await inputsElements[1].click({ count: 3 });
-  //     await keyboardPress('Backspace', null, page);
-  //     await keyboardPress(null, end_date.split('') as KeyInput[], page);
-  //     const submitBtn = await page.$x(
-  //       `//button[contains(text(), " Применить ")]`,
-  //     );
-  //     //@ts-ignore
-  //     await submitBtn[0].click();
-  //     await page.evaluate(() => window.scroll(0, 0));
-  //     await page.click('.icon__download');
-  //     await waitForDownload(path.join(DOWNLOADS_DIR, uuid));
-  //     // await delay(3000);
-  //     const fileName = await fs.promises
-  //       .readdir(path.join(DOWNLOADS_DIR, uuid), {
-  //         withFileTypes: true,
-  //       })
-  //       .then((data) => {
-  //         fs.renameSync(
-  //           path.join(DOWNLOADS_DIR, uuid, data[0].name),
-  //           path.join(DOWNLOADS_DIR, uuid, 'order.xlsx'),
-  //         );
-  //         return 'order.xlsx';
-  //       })
-  //       .catch((error) => {
-  //         page.close();
-  //         this.logger.error(`${this.goToAdverts.name}`, error.message);
-  //         throw new InternalServerErrorException('Download cpm file error.');
-  //       });
-  //     const fileLink = getFileLink(fileName, uuid);
-  //     const content = await page.content();
-  //     await page.close();
-  //     if (with_content) {
-  //       return content;
-  //     }
-  //     if (parse_xlsx) {
-  //       return {
-  //         parsedXlsxData:
-  //           parse_xlsx &&
-  //           (await parseXlsx(path.join(DOWNLOADS_DIR, uuid, fileName))),
-  //       };
-  //     } else {
-  //       return {
-  //         fileLink,
-  //       };
-  //     }
-  //   } catch (error) {
-  //     this.logger.error(`goToAdverts >> `, error.message);
-  //   }
-  // }
+  async goToAdverts({
+    advert_id,
+    end_date,
+    shop_name,
+    start_date,
+    with_content,
+    parse_xlsx,
+  }: GoToAdvertsDto) {
+    const page = await this.changeShop(shop_name);
+    const pagesCount = await page.browser().pages();
+    console.log('----', pagesCount.length);
+    if (pagesCount.length > 2) {
+      await page.browser().close();
+      throw new InternalServerErrorException('Too many pages.Try again.');
+    }
+
+    try {
+      const uuid = v4();
+      const client = await page.target().createCDPSession();
+
+      await client.send('Page.setDownloadBehavior', {
+        behavior: 'allow',
+        downloadPath: `${process.env.WORKSPACE_DIR}/${uuid}`,
+      });
+      await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
+        waitUntil: 'load',
+      });
+      await delay(5000);
+
+      await page.waitForSelector('.icon__calendar', { visible: true });
+      await page.click('.icon__calendar', { delay: 500 });
+      await delay(2000);
+      const inputsElements = await page.$$(
+        '.date-picker__period-calendar__input',
+      );
+
+      await inputsElements[0].click({ count: 3 });
+      await keyboardPress('Backspace', null, page);
+      await keyboardPress(null, start_date.split('') as KeyInput[], page);
+      await inputsElements[1].click({ count: 3 });
+      await keyboardPress('Backspace', null, page);
+      await keyboardPress(null, end_date.split('') as KeyInput[], page);
+
+      const submitBtn = await page.$x(
+        `//button[contains(text(), " Применить ")]`,
+      );
+
+      //@ts-ignore
+      await submitBtn[0].click();
+      await page.evaluate(() => window.scroll(0, 0));
+      await page.click('.icon__download');
+      await page
+        .waitForNavigation({
+          waitUntil: 'networkidle0',
+          timeout: 5000,
+        })
+        .catch((e) => console.log(e.message));
+      await page.browser().close();
+      const fileLink = await findFileOnServer(uuid);
+      let filePath;
+      if (fileLink) {
+        filePath = await downloadXlsx(fileLink);
+        console.log(filePath);
+        // const parserXlsx = await parseXlsx(filePath);
+        // return {
+        //   parseXlsx,
+        // };
+      } else {
+        return fileLink;
+      }
+    } catch (error) {
+      page.browser().close();
+      this.logger.error(`goToAdverts >> `, error.message);
+    }
+  }
 }

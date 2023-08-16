@@ -8,6 +8,10 @@ import * as fs from 'fs';
 import puppeteer, { Browser, KeyInput, Page, Protocol } from 'puppeteer';
 import xlsx from 'node-xlsx';
 import * as child_process from 'child_process';
+import axios from 'axios';
+import { error } from 'console';
+import { v4 } from 'uuid';
+import * as path from 'path';
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
@@ -117,7 +121,55 @@ function convertToObjects(data): Array<any> {
   return objects;
 }
 
+export const BROWSERLESS_SERVERS = {
+  '1': 'http://browserless_one:3001',
+  '2': 'http://browserless_two:3002',
+  '3': 'http://browserless_three:3003',
+};
+
+export const findFileOnServer = async (
+  workspace_id: string,
+): Promise<string> => {
+  const browserLessArray = Object.values(BROWSERLESS_SERVERS);
+  let fileLink = null;
+  for await (const browser of browserLessArray) {
+    try {
+      const { data } = await axios.get(`${browser}/workspace/${workspace_id}`);
+      console.log(`${browser}/workspace/${workspace_id}`);
+      if (data) {
+        fileLink = browser;
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+  fileLink ? (fileLink = `${fileLink}/workspace/${workspace_id}`) : null;
+  return fileLink;
+};
+
+export const downloadXlsx = async (fileUrl: string) => {
+  try {
+    const filePath = path.join(__dirname, `${v4()}.xlsx`);
+    return await axios
+      .request({
+        responseType: 'arraybuffer',
+        url: fileUrl,
+        method: 'get',
+        headers: {
+          'content-type': 'blob',
+        },
+      })
+      .then((result) => {
+        fs.writeFileSync(filePath, result.data);
+        return filePath;
+      });
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
 export const parseXlsx = async (filePath: string): Promise<Array<any>> => {
+  console.log(filePath);
   const parsedXlsxData: {
     name: string;
     data: any[][];

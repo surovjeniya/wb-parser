@@ -16,28 +16,8 @@ import { WildberriesService } from './wildberries.service';
 
 @Controller('wildberries')
 export class WildberriesController {
-  @Get('test')
-  async test() {
-    let browser;
-    try {
-      console.log('dsd');
-      browser = await P.connect({
-        browserWSEndpoint: 'ws://nginx-service:80',
-      });
-      const page: P.Page = await browser.newPage();
-      await page.goto(
-        'https://seller.wildberries.ru/login/ru/?redirect_url=/',
-        { waitUntil: 'load' },
-      );
-      await delay(5000);
-      const content = await page.content();
-      await browser.close();
-      return content;
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
   constructor(private readonly wildberriesService: WildberriesService) {}
+
   @Post('send-phone-number')
   async sendPhoneNumber(@Body() dto: SendPhoneNumberDtoRequest) {
     return await this.wildberriesService.sendPhoneNumber(
@@ -57,8 +37,8 @@ export class WildberriesController {
       }
     }
   }
-  // @Post('go-to-adverts')
-  // async goToAdverts(@Body() dto: GoToAdvertsDto) {
-  //   return await this.wildberriesService.goToAdverts(dto);
-  // }
+  @Post('go-to-adverts')
+  async goToAdverts(@Body() dto: GoToAdvertsDto) {
+    return await this.wildberriesService.goToAdverts(dto);
+  }
 }
