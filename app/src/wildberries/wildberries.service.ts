@@ -6,89 +6,26 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import puppeteer, { Browser, KeyInput, Page } from 'puppeteer';
-import * as fs from 'fs';
-import * as path from 'path';
 import { v4 } from 'uuid';
-import { DOWNLOADS_DIR, SESSIONS_DIRS } from './config/browser.config';
 import {
-  copyWithRsync,
   createDownloadsDir,
-  createSessionsDir,
   delay,
   downloadXlsx,
   findFileOnServer,
-  getFileLink,
-  getNextNumber,
   keyboardPress,
+  pageController,
   parseXlsx,
-  start,
 } from './utils/wildberries.utils';
 import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
-import { waitForDownload } from 'puppeteer-utilz';
-import axios from 'axios';
+import { EventEmitter } from 'stream';
 
 @Injectable()
-export class WildberriesService {
+export class WildberriesService implements OnModuleInit {
+  onModuleInit() {
+    createDownloadsDir();
+  }
   private code = null;
   private readonly logger = new Logger(WildberriesService.name);
-
-  async changeShop(shop_name?: string): Promise<Page> {
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: 'ws://nginx-service:80',
-    });
-    const page: Page = await browser.newPage();
-    try {
-      await page.goto(
-        'https://seller.wildberries.ru/login/ru/?redirect_url=/',
-        {
-          waitUntil: 'load',
-        },
-      );
-      await delay(3000);
-      await page
-        .waitForSelector('.ProfileView', { timeout: 15000 })
-        .catch((error) => {
-          browser.close();
-          this.logger.error(`changeShop >> `, error.message);
-          throw new InternalServerErrorException('Wait profile view error.');
-        });
-      await page.click('.ProfileView', { delay: 1000 });
-      await delay(3000);
-      const linkHandlers = await page.$x(
-        `//span[contains(text(), "${shop_name}")]`,
-      );
-      //@ts-ignore
-      linkHandlers.length && (await linkHandlers[0].click());
-      await delay(1000);
-      return page;
-    } catch (error) {
-      await page.browser().close();
-    }
-  }
-
-  async switchBrowser(browser_idx: 'one' | 'two' | 'three'): Promise<Browser> {
-    let browser: Browser;
-    switch (browser_idx) {
-      case 'one':
-        browser = await puppeteer.connect({
-          browserWSEndpoint: 'ws://browserless_one:3001',
-        });
-        break;
-      case 'two':
-        browser = await puppeteer.connect({
-          browserWSEndpoint: 'ws://browserless_two:3002',
-        });
-        break;
-      case 'three':
-        browser = await puppeteer.connect({
-          browserWSEndpoint: 'ws://browserless_three:3003',
-        });
-        break;
-      default:
-        break;
-    }
-    return browser;
-  }
 
   async sendPhoneNumber(
     phone_number: string,
@@ -151,6 +88,68 @@ export class WildberriesService {
     return this.code;
   }
 
+  async changeShop(shop_name?: string): Promise<Page | any> {
+    const browser = await puppeteer.connect({
+      browserWSEndpoint: 'ws://nginx-service:80',
+    });
+    const page: Page = await browser.newPage();
+    await pageController(page.browser());
+    try {
+      await page.goto(
+        'https://seller.wildberries.ru/login/ru/?redirect_url=/',
+        {
+          waitUntil: 'load',
+        },
+      );
+
+      await page.waitForSelector('.ProfileView', { timeout: 15000 });
+      await page.click('.ProfileView', { delay: 1000 });
+      // await delay(3000);
+      const linkHandlers = await page.$x(
+        `//span[contains(text(), "${shop_name}")]`,
+      );
+      //@ts-ignore
+      linkHandlers.length && (await linkHandlers[0].click());
+      await delay(1000);
+      return page;
+    } catch (error) {
+      this.logger.error(`${this.changeShop.name}`, error.message);
+      await page.browser().close();
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async switchBrowser(browser_idx: 'one' | 'two' | 'three'): Promise<Browser> {
+    let browser: Browser;
+    switch (browser_idx) {
+      case 'one':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_one:3001',
+        });
+        break;
+      case 'two':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_two:3002',
+        });
+        break;
+      case 'three':
+        browser = await puppeteer.connect({
+          browserWSEndpoint: 'ws://browserless_three:3003',
+        });
+        break;
+      default:
+        break;
+    }
+    return browser;
+  }
+
+  waitForEvent(emitter: EventEmitter, event: string): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      emitter.once(event, resolve);
+      emitter.once(event, reject);
+    });
+  }
+
   async goToAdverts({
     advert_id,
     end_date,
@@ -159,29 +158,33 @@ export class WildberriesService {
     with_content,
     parse_xlsx,
   }: GoToAdvertsDto) {
-    const page = await this.changeShop(shop_name);
-    const pagesCount = await page.browser().pages();
-    console.log('----', pagesCount.length);
-    if (pagesCount.length > 2) {
-      await page.browser().close();
-      throw new InternalServerErrorException('Too many pages.Try again.');
-    }
-
+    const page: Page = await this.changeShop(shop_name);
     try {
+      const emitter = new EventEmitter();
       const uuid = v4();
       const client = await page.target().createCDPSession();
-
-      await client.send('Page.setDownloadBehavior', {
+      await client.send('Browser.setDownloadBehavior', {
         behavior: 'allow',
         downloadPath: `${process.env.WORKSPACE_DIR}/${uuid}`,
+        eventsEnabled: true,
       });
-      await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
-        waitUntil: 'load',
+      client.on('Browser.downloadProgress', (e) => {
+        if (e.state === 'completed') {
+          findFileOnServer(uuid).then((link) =>
+            emitter.emit('download_success', link),
+          );
+        }
       });
-      await delay(5000);
 
-      await page.waitForSelector('.icon__calendar', { visible: true });
+      await page.goto(`https://cmp.wildberries.ru/statistics/${advert_id}`, {
+        waitUntil: 'networkidle0',
+      });
+      await page.waitForSelector('.icon__calendar', {
+        visible: true,
+        timeout: 5000,
+      });
       await page.click('.icon__calendar', { delay: 500 });
+
       await delay(2000);
       const inputsElements = await page.$$(
         '.date-picker__period-calendar__input',
@@ -197,33 +200,21 @@ export class WildberriesService {
       const submitBtn = await page.$x(
         `//button[contains(text(), " Применить ")]`,
       );
-
       //@ts-ignore
       await submitBtn[0].click();
-      await page.evaluate(() => window.scroll(0, 0));
+      await page.evaluate(() => {
+        window.scroll(0, 0);
+      });
       await page.click('.icon__download');
-      await page
-        .waitForNavigation({
-          waitUntil: 'networkidle0',
-          timeout: 5000,
-        })
-        .catch((e) => console.log(e.message));
+      const fileLink = await this.waitForEvent(emitter, 'download_success');
+      const filePath = await downloadXlsx(fileLink as string);
+      const parsedXlsx = await parseXlsx(filePath);
       await page.browser().close();
-      const fileLink = await findFileOnServer(uuid);
-      let filePath;
-      if (fileLink) {
-        filePath = await downloadXlsx(fileLink);
-        console.log(filePath);
-        // const parserXlsx = await parseXlsx(filePath);
-        // return {
-        //   parseXlsx,
-        // };
-      } else {
-        return fileLink;
-      }
+      return parsedXlsx;
     } catch (error) {
+      this.logger.error(`${this.goToAdverts.name}`, error.message);
       page.browser().close();
-      this.logger.error(`goToAdverts >> `, error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

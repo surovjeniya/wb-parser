@@ -12,6 +12,7 @@ import axios from 'axios';
 import { error } from 'console';
 import { v4 } from 'uuid';
 import * as path from 'path';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 export const getFileLink = (fileName: string, uuid: string): string => {
   const hostName = NODE_ENV ? process.env.HOST_NAME : 'http://localhost';
@@ -134,11 +135,21 @@ export const findFileOnServer = async (
   let fileLink = null;
   for await (const browser of browserLessArray) {
     try {
-      const { data } = await axios.get(`${browser}/workspace/${workspace_id}`);
-      console.log(`${browser}/workspace/${workspace_id}`);
-      if (data) {
-        fileLink = browser;
-      }
+      const {
+        data,
+      }: {
+        data: {
+          created: string;
+          isDirectory: boolean;
+          name: string;
+          path: string;
+          size: number;
+          workspaceId: string;
+        }[];
+      } = await axios.get(`${browser}/workspace`);
+
+      fileLink = data.find((item) => item.workspaceId === workspace_id);
+      return `${browser}${fileLink.path}`;
     } catch (error) {
       console.log(error.message);
     }
@@ -147,29 +158,30 @@ export const findFileOnServer = async (
   return fileLink;
 };
 
+export const pageController = async (browser: Browser) => {
+  const pages = await browser.pages();
+  if (pages.length > 2) {
+    await browser.close();
+    throw new HttpException(
+      'To many pages.Try againt',
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+};
+
 export const downloadXlsx = async (fileUrl: string) => {
   try {
-    const filePath = path.join(__dirname, `${v4()}.xlsx`);
-    return await axios
-      .request({
-        responseType: 'arraybuffer',
-        url: fileUrl,
-        method: 'get',
-        headers: {
-          'content-type': 'blob',
-        },
-      })
-      .then((result) => {
-        fs.writeFileSync(filePath, result.data);
-        return filePath;
-      });
+    const fileName = `${v4()}.xlsx`;
+    const filePath = path.join(DOWNLOADS_DIR, fileName);
+    const { data } = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+    await fs.promises.writeFile(filePath, data);
+    return filePath;
   } catch (error) {
     console.log(error.message);
   }
 };
 
 export const parseXlsx = async (filePath: string): Promise<Array<any>> => {
-  console.log(filePath);
   const parsedXlsxData: {
     name: string;
     data: any[][];

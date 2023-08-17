@@ -2,8 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   InternalServerErrorException,
   Post,
+  Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
 // import { WildberriesService } from './wildberries.service';
@@ -13,6 +16,10 @@ import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
 import * as P from 'puppeteer';
 import { delay } from './utils/wildberries.utils';
 import { WildberriesService } from './wildberries.service';
+import { Request, Response } from 'express';
+import axios from 'axios';
+import * as xlsx from 'xlsx';
+import * as fs from 'fs';
 
 @Controller('wildberries')
 export class WildberriesController {
@@ -39,6 +46,7 @@ export class WildberriesController {
   }
   @Post('go-to-adverts')
   async goToAdverts(@Body() dto: GoToAdvertsDto) {
-    return await this.wildberriesService.goToAdverts(dto);
+    const fileLink = await this.wildberriesService.goToAdverts(dto);
+    return fileLink;
   }
 }
