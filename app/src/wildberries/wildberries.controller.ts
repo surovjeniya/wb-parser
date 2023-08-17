@@ -1,14 +1,25 @@
 import {
   Body,
   Controller,
+  Get,
+  Header,
   InternalServerErrorException,
   Post,
+  Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { WildberriesService } from './wildberries.service';
+// import { WildberriesService } from './wildberries.service';
 import { SendCodeDtoRequest } from './dto/send-code.dto';
 import { SendPhoneNumberDtoRequest } from './dto/send-phone-number.dto';
 import { GoToAdvertsDto } from './dto/go-to-adverts.dto';
+import * as P from 'puppeteer';
+import { delay } from './utils/wildberries.utils';
+import { WildberriesService } from './wildberries.service';
+import { Request, Response } from 'express';
+import axios from 'axios';
+import * as xlsx from 'xlsx';
+import * as fs from 'fs';
 
 @Controller('wildberries')
 export class WildberriesController {
@@ -16,21 +27,11 @@ export class WildberriesController {
 
   @Post('send-phone-number')
   async sendPhoneNumber(@Body() dto: SendPhoneNumberDtoRequest) {
-    try {
-      return await this.wildberriesService.sendPhoneNumber(dto.phone_number);
-    } catch (error) {
-      if (error.response && error.response.statusCode === 401) {
-        console.log(error);
-        throw new UnauthorizedException(error.response.message);
-      }
-      if (error.response && error.response.statusCode === 500) {
-        throw new InternalServerErrorException(error.response.message);
-      } else {
-        throw new InternalServerErrorException(error.message);
-      }
-    }
+    return await this.wildberriesService.sendPhoneNumber(
+      dto.phone_number,
+      dto.browser_idx,
+    );
   }
-
   @Post('send-code')
   async sendCode(@Body() dto: SendCodeDtoRequest) {
     try {
@@ -43,9 +44,9 @@ export class WildberriesController {
       }
     }
   }
-
   @Post('go-to-adverts')
   async goToAdverts(@Body() dto: GoToAdvertsDto) {
-    return await this.wildberriesService.goToAdverts(dto);
+    const fileLink = await this.wildberriesService.goToAdverts(dto);
+    return fileLink;
   }
 }

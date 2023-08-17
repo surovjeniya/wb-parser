@@ -5,9 +5,15 @@ networks:
     name: $INFRA_NETWORK
     driver: bridge
 volumes:
-  downloads-second:
-    name: $INFRA_DOWNLOADS_SECOND_VOLUME
+  sessions-one:
     driver: local
+    name: ${INFRA_BROWSERLESS_ONE_SESSIONS_VOLUME}
+  sessions-two:
+    driver: local
+    name: ${INFRA_BROWSERLESS_TWO_SESSIONS_VOLUME}
+  sessions-three:
+    driver: local
+    name: ${INFRA_BROWSERLESS_THREE_SESSIONS_VOLUME}
   downloads:
     name: $INFRA_DOWNLOADS_VOLUME
     driver: local
@@ -19,11 +25,18 @@ services:
     build: 
       context: ../nginx
       dockerfile: Dockerfile
+    environment:
+      - INFRA_BROWSERLESS_UPSTREAM=${INFRA_BROWSERLESS_UPSTREAM}
     ports:
       - "${INFRA_NGINX_PORT}:${INFRA_NGINX_PORT}"
     restart: unless-stopped
     networks:
      - infra
+    depends_on:
+      - browserless_two
+      - browserless_one
+      - browserless_three
+      - parser-api-service
 
   parser-api-service:
     image: $INFRA_PARSER_API_IMAGE
@@ -31,14 +44,84 @@ services:
     build: 
       context: ../app
       dockerfile: Dockerfile
+      target: production
     restart: unless-stopped
     volumes:
       - downloads:/usr/src/app/downloads
     environment:
+      WORKSPACE_DIR: ${INFRA_BROWSERLESS_WORKSPACE_DIR}
       HOST_NAME: $INFRA_PARSER_HOSTNAME
       PORT: $INFRA_PARSER_API_PORT
       NODE_ENV: production
       TZ: Europe/Moscow
-      ROOT_PATH: INFRA_PARSER_API_ROOT_PATH
     networks:
      - infra
+  
+  browserless_two:
+    image: ${INFRA_BROWSERLESS_IMAGE}
+    container_name: ${INFRA_BROWSERLESS_TWO_APP}
+    build:
+      context: ../browserless
+      dockerfile: Dockerfile
+    environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
+      - PORT=${INFRA_BROWSERLESS_TWO_PORT}
+      - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
+      - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
+    volumes:
+      - sessions-two:/usr/src/app/sessions
+    restart: unless-stopped
+    networks:
+      - infra
+    ports:
+      - "${INFRA_BROWSERLESS_TWO_PORT}:${INFRA_BROWSERLESS_TWO_PORT}"
+
+  browserless_three:
+    image: ${INFRA_BROWSERLESS_IMAGE}
+    container_name: ${INFRA_BROWSERLESS_THREE_APP}
+    build:
+      context: ../browserless
+      dockerfile: Dockerfile
+    environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
+      - PORT=${INFRA_BROWSERLESS_THREE_PORT}
+      - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
+      - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
+    restart: unless-stopped
+    volumes:
+      - sessions-three:/usr/src/app/sessions
+    networks:
+      - infra
+    ports:
+      - "${INFRA_BROWSERLESS_THREE_PORT}:${INFRA_BROWSERLESS_THREE_PORT}"
+
+  browserless_one:
+    image: ${INFRA_BROWSERLESS_IMAGE}
+    container_name: ${INFRA_BROWSERLESS_ONE_APP}
+    build:
+      context: ../browserless
+      dockerfile: Dockerfile
+    environment:
+      - DEFAULT_IGNORE_HTTPS_ERRORS=true
+      - DISABLE_AUTO_SET_DOWNLOAD_BEHAVIOR=true
+      - WORKSPACE_DIR=${INFRA_BROWSERLESS_WORKSPACE_DIR}
+      - PORT=${INFRA_BROWSERLESS_ONE_PORT}
+      - DEFAULT_LAUNCH_ARGS=${INFRA_BROWSERLESS_DEFAULT_ARGS}
+      - PRE_REQUEST_HEALTH_CHECK=true
+      - EXIT_ON_HEALTH_FAILURE=true
+      - WORKSPACE_DELETE_EXPIRED=true
+    restart: unless-stopped
+    volumes:
+      - sessions-one:/usr/src/app/sessions
+    networks:
+      - infra
+    ports:
+      - "${INFRA_BROWSERLESS_ONE_PORT}:${INFRA_BROWSERLESS_ONE_PORT}"

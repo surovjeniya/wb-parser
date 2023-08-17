@@ -20,7 +20,7 @@ export const BROWSER_CONFIG: PuppeteerLaunchOptions = {
   env: NODE_ENV && {
     DISPLAY: ':10.0',
   },
-  headless: NODE_ENV ? true : false,
+  headless: NODE_ENV ? true : true,
   ignoreHTTPSErrors: true,
   executablePath: NODE_ENV && '/usr/bin/google-chrome',
   devtools: NODE_ENV ? false : true,
