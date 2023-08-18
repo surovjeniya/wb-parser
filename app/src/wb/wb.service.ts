@@ -44,16 +44,13 @@ export class WbService {
     start_date,
     end_date,
     advert_id,
-    shop_name,
+    supplierID,
   }: AdvertStatDto) {
-    const shop_credentials = SHOPS_CREDENTIALS.find(
-      (item) => item.name === shop_name,
-    );
     let content = [];
 
     const data = await wbApiInstance.getAdvertFullStat(
       advert_id,
-      shop_credentials.x_supplier_id_external,
+      supplierID,
       WB_MANAGER_UID,
       WB_MANAGER_TOKEN,
     );

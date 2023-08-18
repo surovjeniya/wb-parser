@@ -1,11 +1,4 @@
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Matches,
-} from 'class-validator';
-import { WB_MANGER_SHOPS_ENUM } from '../constant/shops-ids.contant';
+import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class AdvertStatDto {
   @IsNotEmpty()
@@ -27,6 +20,6 @@ export class AdvertStatDto {
   end_date: string;
 
   @IsNotEmpty()
-  @IsEnum(WB_MANGER_SHOPS_ENUM, { each: true })
-  shop_name: string;
+  @IsString()
+  supplierID: string;
 }
