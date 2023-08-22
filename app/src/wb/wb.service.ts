@@ -1,4 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AdvertStatDto } from './dto/advert-stat.dto';
 import { wbApiInstance } from './utils/wb-api';
 import {
@@ -54,6 +61,7 @@ export class WbService {
       WB_MANAGER_UID,
       WB_MANAGER_TOKEN,
     );
+
     if (!data) {
       throw new InternalServerErrorException('Wb api error.Try again.');
     }
@@ -61,11 +69,20 @@ export class WbService {
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dateRangeArray = this.generateDateRangeArray(startDate, endDate);
-      for await (const datE of dateRangeArray) {
-        const { date, apps } = data.content.days.find(
-          (item) => item.date === `${datE}T03:00:00+03:00`,
-        );
 
+      for await (const datE of dateRangeArray) {
+        const dataByDaysPeriod = data.content.days.find((item) =>
+          item.date.includes(datE),
+        );
+        if (!dataByDaysPeriod) {
+          const dataDays = data.content.days.map((item) => item.date);
+          throw new NotFoundException(
+            `Adverts data with this date range not found. Available range: start_date: ${
+              dataDays[0].split('T')[0]
+            };end_date: ${dataDays[dataDays.length - 1].split('T')[0]}`,
+          );
+        }
+        const { date, apps } = dataByDaysPeriod;
         content.push({
           date,
           data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
