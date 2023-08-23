@@ -77,9 +77,7 @@ export class WbService {
         if (!dataByDaysPeriod) {
           const dataDays = data.content.days.map((item) => item.date);
           throw new NotFoundException(
-            `Adverts data with this date range not found. Available range: start_date: ${
-              dataDays[0].split('T')[0]
-            };end_date: ${dataDays[dataDays.length - 1].split('T')[0]}`,
+            `Adverts data with this date range not found.`
           );
         }
         const { date, apps } = dataByDaysPeriod;
