@@ -50,6 +50,7 @@ class WbAPi {
           }
           if (status === 500) {
             if (this.counter === 10) {
+              console.error(`${this.getAdvertFullStat.name}`,`Wb api error.Number of attempts = ${this.counter}.Delay beteen requests = ${delay}`)
               throw new InternalServerErrorException(
                 `Wb api error.Number of attempts = ${this.counter}.Delay beteen requests = ${delay}`,
               );
