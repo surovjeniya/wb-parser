@@ -89,9 +89,11 @@ export class WbService {
           data: getBoostersData(
             //@ts-ignore
             this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-            data.content.boosterStats.filter(
-              (item) => item.date.split('T')[0] === date.split('T')[0],
-            ) || [],
+            data?.content?.boosterStats
+              ? data?.content?.boosterStats?.filter(
+                  (item) => item.date.split('T')[0] === date.split('T')[0],
+                )
+              : [],
           ),
         });
       }
@@ -105,9 +107,11 @@ export class WbService {
         data: getBoostersData(
           //@ts-ignore
           this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-          data.content.boosterStats.filter(
-            (item) => item.date.split('T')[0] === date.split('T')[0],
-          ) || [],
+          data?.content?.boosterStats
+            ? data?.content?.boosterStats?.filter(
+                (item) => item.date.split('T')[0] === date.split('T')[0],
+              )
+            : [],
         ),
       }));
     }
