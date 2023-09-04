@@ -9,5 +9,3 @@ services:
     command: npm run start:dev
     volumes:
       - ../app:/usr/src/app
-    environment:
-      HOST_NAME: http://localhost

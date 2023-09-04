@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -23,29 +23,16 @@
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^9.0.0",
+    "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^9.0.0",
-    "@nestjs/serve-static": "^4.0.0",
-    "@types/puppeteer": "^7.0.4",
-    "adm-zip": "^0.5.10",
+    "@nestjs/typeorm": "^10.0.0",
     "axios": "^1.4.0",
-    "child_process": "^1.0.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
-    "convert-excel-to-json": "^1.7.0",
-    "decompress": "^4.2.1",
-    "node-xlsx": "^0.23.0",
-    "puppeteer": "^21.0.0",
-    "puppeteer-cluster": "^0.23.0",
-    "puppeteer-utilz": "^4.0.8",
+    "pg": "^8.11.3",
     "reflect-metadata": "^0.1.13",
-    "regenerator-runtime": "^0.14.0",
-    "rsync": "^0.6.1",
     "rxjs": "^7.2.0",
-    "tar": "^6.1.15",
-    "unzip": "^0.1.11",
-    "uuid": "^9.0.0",
-    "xlsx": "^0.18.5",
-    "xlsx-to-json": "^0.3.0"
+    "typeorm": "^0.3.17"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
@@ -85,7 +72,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -93,7 +80,14 @@
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "./coverage",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src/",
+      "<rootDir>/libs/"
+    ],
+    "moduleNameMapper": {
+      "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1"
+    }
   }
 }

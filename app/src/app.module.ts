@@ -1,14 +1,7 @@
 import { Module } from '@nestjs/common';
-import { WildberriesModule } from './wildberries/wildberries.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import * as path from 'path';
+import { WbModule } from './wb/wb.module';
 
 @Module({
-  imports: [
-    WildberriesModule,
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'downloads'),
-    }),
-  ],
+  imports: [WbModule],
 })
 export class AppModule {}
