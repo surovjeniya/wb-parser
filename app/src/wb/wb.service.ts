@@ -6,6 +6,7 @@ import {
 import { AdvertStatDto } from './dto/advert-stat.dto';
 import { wbApiInstance } from './utils/wb-api';
 import { WB_MANAGER_TOKEN, WB_MANAGER_UID } from './constant/shops-ids.contant';
+import { getBoostersData } from './utils/get-booster-by-article.utils';
 
 @Injectable()
 export class WbService {
@@ -60,7 +61,7 @@ export class WbService {
       WB_MANAGER_UID,
       WB_MANAGER_TOKEN,
     );
-    const boosterStats = data?.content?.boosterStats || [];
+
     if (!data) {
       throw new InternalServerErrorException('Wb api error.Try again.');
     }
@@ -68,13 +69,11 @@ export class WbService {
       const startDate = new Date(start_date);
       const endDate = new Date(end_date);
       const dateRangeArray = this.generateDateRangeArray(startDate, endDate);
-
       for await (const datE of dateRangeArray) {
         const dataByDaysPeriod = data.content.days.find((item) =>
           item.date.includes(datE),
         );
         if (!dataByDaysPeriod) {
-          const dataDays = data.content.days.map((item) => item.date);
           throw new NotFoundException(
             `Adverts data with this date range not found.`,
           );
@@ -83,22 +82,35 @@ export class WbService {
 
         content.push({
           date,
-          data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-          boosterStats: data.content?.boosterStats?.filter(
-            (item) => item.date.includes(datE) || [],
+          // data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+          // boosterData: data.content.boosterStats.filter(
+          //   (item) => item.date.split('T')[0] === date.split('T')[0],
+          // ),
+          data: getBoostersData(
+            //@ts-ignore
+            this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+            data.content.boosterStats.filter(
+              (item) => item.date.split('T')[0] === date.split('T')[0],
+            ) || [],
           ),
         });
       }
     } else {
       content = data.content.days.map(({ date, apps }) => ({
         date,
-        data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-        boosterStats: data?.content?.boosterStats || [],
+        // data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+        // boosterData: data.content.boosterStats.filter(
+        //   (item) => item.date.split('T')[0] === date.split('T')[0],
+        // ),
+        data: getBoostersData(
+          //@ts-ignore
+          this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+          data.content.boosterStats.filter(
+            (item) => item.date.split('T')[0] === date.split('T')[0],
+          ) || [],
+        ),
       }));
     }
-
-    return {
-      content,
-    };
+    return content;
   }
 }
