@@ -9,6 +9,12 @@ import { WB_MANAGER_TOKEN, WB_MANAGER_UID } from './constant/shops-ids.contant';
 
 @Injectable()
 export class WbService {
+  async getCardRating(nmId: number) {
+    const details = await wbApiInstance.getCardDetail(nmId);
+    const userRating = details.data.products.find((item) => item.id === nmId);
+    return userRating.reviewRating;
+  }
+
   sumFieldsByNmId(inputArray: any[]): unknown[] {
     const resultMap = {};
 
