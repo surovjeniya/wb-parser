@@ -84,8 +84,8 @@ export class WbService {
         content.push({
           date,
           data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-          boosterStats: data.content.boosterStats.filter((item) =>
-            item.date.includes(datE),
+          boosterStats: data.content?.boosterStats?.filter(
+            (item) => item.date.includes(datE) || [],
           ),
         });
       }
@@ -93,7 +93,7 @@ export class WbService {
       content = data.content.days.map(({ date, apps }) => ({
         date,
         data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-        boosterStats: data.content.boosterStats,
+        boosterStats: data?.content?.boosterStats || [],
       }));
     }
 
