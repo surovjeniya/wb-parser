@@ -1,18 +1,11 @@
 import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { AdvertStatDto } from './dto/advert-stat.dto';
 import { wbApiInstance } from './utils/wb-api';
-import {
-  SHOPS_CREDENTIALS,
-  WB_MANAGER_TOKEN,
-  WB_MANAGER_UID,
-} from './constant/shops-ids.contant';
+import { WB_MANAGER_TOKEN, WB_MANAGER_UID } from './constant/shops-ids.contant';
 
 @Injectable()
 export class WbService {
@@ -61,7 +54,7 @@ export class WbService {
       WB_MANAGER_UID,
       WB_MANAGER_TOKEN,
     );
-
+    const boosterStats = data?.content?.boosterStats || [];
     if (!data) {
       throw new InternalServerErrorException('Wb api error.Try again.');
     }
@@ -71,25 +64,31 @@ export class WbService {
       const dateRangeArray = this.generateDateRangeArray(startDate, endDate);
 
       for await (const datE of dateRangeArray) {
+        const boosterStatistics = boosterStats.find((item) =>
+          item.date.includes(datE),
+        );
+
         const dataByDaysPeriod = data.content.days.find((item) =>
           item.date.includes(datE),
         );
         if (!dataByDaysPeriod) {
           const dataDays = data.content.days.map((item) => item.date);
           throw new NotFoundException(
-            `Adverts data with this date range not found.`
+            `Adverts data with this date range not found.`,
           );
         }
         const { date, apps } = dataByDaysPeriod;
         content.push({
           date,
           data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+          boosterStats: boosterStatistics,
         });
       }
     } else {
       content = data.content.days.map(({ date, apps }) => ({
         date,
         data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
+        boosterStats,
       }));
     }
     return content;

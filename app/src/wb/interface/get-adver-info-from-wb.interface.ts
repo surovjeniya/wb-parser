@@ -7,6 +7,12 @@ export interface WbAdvertInfo {
   content: Content;
 }
 
+export interface IBoosterStat {
+  date: string;
+  nm: number;
+  avg_position: number;
+}
+
 export interface Content {
   advertId: number;
   begin: string;
@@ -25,6 +31,7 @@ export interface Content {
   shks: number;
   sum_price: number;
   detailed: boolean;
+  boosterStats: IBoosterStat[];
 }
 
 export interface Day {
