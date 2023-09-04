@@ -64,10 +64,6 @@ export class WbService {
       const dateRangeArray = this.generateDateRangeArray(startDate, endDate);
 
       for await (const datE of dateRangeArray) {
-        const boosterStatistics = boosterStats.find((item) =>
-          item.date.includes(datE),
-        );
-
         const dataByDaysPeriod = data.content.days.find((item) =>
           item.date.includes(datE),
         );
@@ -78,19 +74,25 @@ export class WbService {
           );
         }
         const { date, apps } = dataByDaysPeriod;
+
         content.push({
           date,
           data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-          boosterStats: boosterStatistics,
+          boosterStats: data.content.boosterStats.filter((item) =>
+            item.date.includes(datE),
+          ),
         });
       }
     } else {
       content = data.content.days.map(({ date, apps }) => ({
         date,
         data: this.sumFieldsByNmId(apps.map((item) => item.nm.flat()).flat()),
-        boosterStats,
+        boosterStats: data.content.boosterStats,
       }));
     }
-    return content;
+
+    return {
+      content,
+    };
   }
 }
