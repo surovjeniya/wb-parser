@@ -10,10 +10,14 @@ class WbAPi {
   private counter = 0;
 
   async getCardDetail(nmId: number) {
-    const { data } = await axios.get<ICardDetail>(
-      `https://card.wb.ru/cards/detail?appType=1&curr=rub&dest=-1257786&regions=80,38,83,4,64,33,68,70,30,40,86,75,69,1,31,66,110,22,48,71,114&spp=32&nm=${nmId}`,
-    );
-    return data;
+    try {
+      const { data } = await axios.get<ICardDetail>(
+        `https://card.wb.ru/cards/detail?appType=1&curr=rub&dest=-1257786&regions=80,38,83,4,64,33,68,70,30,40,86,75,69,1,31,66,110,22,48,71,114&spp=32&nm=${nmId}`,
+      );
+      return data;
+    } catch (error) {
+      console.error(error.message);
+    }
   }
 
   async getAdvertFullStat(

@@ -12,8 +12,18 @@ import { getBoostersData } from './utils/get-booster-by-article.utils';
 export class WbService {
   async getCardRating(nmId: number) {
     const details = await wbApiInstance.getCardDetail(nmId);
-    const userRating = details.data.products.find((item) => item.id === nmId);
-    return userRating.reviewRating;
+    if (!details)
+      throw new InternalServerErrorException('Wp api error.Try again.');
+    const reviewRating = details.data.products.find(
+      (item) => item.id === nmId,
+    ).reviewRating;
+    const feedbacks = details.data.products.find(
+      (item) => item.id === nmId,
+    ).feedbacks;
+    return {
+      reviewRating,
+      feedbacks,
+    };
   }
 
   sumFieldsByNmId(inputArray: any[]): unknown[] {
