@@ -2,6 +2,7 @@ import axios, { isAxiosError } from 'axios';
 import { WbAdvertInfo } from '../interface/get-adver-info-from-wb.interface';
 import {
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ICardDetail } from '../interface/get-card-detail.interface';
@@ -16,7 +17,9 @@ class WbAPi {
       );
       return data;
     } catch (error) {
-      console.error(error.message);
+      if (isAxiosError(error)) {
+        console.log(error);
+      }
     }
   }
 

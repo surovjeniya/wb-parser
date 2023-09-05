@@ -12,8 +12,11 @@ import { getBoostersData } from './utils/get-booster-by-article.utils';
 export class WbService {
   async getCardRating(nmId: number) {
     const details = await wbApiInstance.getCardDetail(nmId);
+
     if (!details)
       throw new InternalServerErrorException('Wp api error.Try again.');
+    if (!details.data.products.length)
+      throw new NotFoundException('Product not found of haven`t rating.');
     const reviewRating = details.data.products.find(
       (item) => item.id === nmId,
     ).reviewRating;
