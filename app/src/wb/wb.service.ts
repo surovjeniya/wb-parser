@@ -7,6 +7,8 @@ import { AdvertStatDto } from './dto/advert-stat.dto';
 import { wbApiInstance } from './utils/wb-api';
 import { WB_MANAGER_TOKEN, WB_MANAGER_UID } from './constant/shops-ids.contant';
 import { getBoostersData } from './utils/get-booster-by-article.utils';
+import { GetTurnoverDto } from './dto/get-turnover.dto';
+import { combineLatest } from 'rxjs';
 
 @Injectable()
 export class WbService {
@@ -26,6 +28,36 @@ export class WbService {
     return {
       reviewRating,
       feedbacks,
+    };
+  }
+
+  getPreparedDate(date: string) {
+    const preparedDate = new Date(date);
+    return {
+      month:
+        preparedDate.getMonth() < 10
+          ? `0${preparedDate.getMonth() + 1}`
+          : preparedDate.getMonth() + 1,
+      date:
+        preparedDate.getDate() < 10
+          ? `0${preparedDate.getDate()}`
+          : preparedDate.getDate(),
+      year: preparedDate.getFullYear().toString().split('').slice(-2).join(''),
+    };
+  }
+
+  async getTurnover({ end_date, start_date, supplierID }: GetTurnoverDto) {
+    const preparedStartDateObject = this.getPreparedDate(start_date);
+    const preparedEndDateObject = this.getPreparedDate(end_date);
+    const startDate = `${preparedStartDateObject.date}.${preparedStartDateObject.month}.${preparedStartDateObject.year}`;
+    const endDate = `${preparedEndDateObject.date}.${preparedEndDateObject.month}.${preparedEndDateObject.year}`;
+    const turnoverData = await wbApiInstance.getTurnover(
+      supplierID,
+      startDate,
+      endDate,
+    );
+    return {
+      turnover: turnoverData.data.turnoverReportDailyDynamicsTable,
     };
   }
 

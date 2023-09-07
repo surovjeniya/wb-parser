@@ -6,9 +6,45 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ICardDetail } from '../interface/get-card-detail.interface';
+import { ITurnover } from '../interface/get-turnover.interface';
 
 class WbAPi {
   private counter = 0;
+
+  async getTurnover(
+    x_supplier_id_external: string,
+    start_date: string,
+    end_date: string,
+  ) {
+    try {
+      const { data: turnover } = await axios.get<ITurnover>(
+        `https://seller.wildberries.ru/ns/turnover/analytics-back/api/v1/turnover-report-daily-dynamics-table?dateFrom=${start_date}&dateTo=${end_date}&limit=10&offset=0`,
+        {
+          withCredentials: true,
+          headers: {
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'ru',
+            Connection: 'keep-alive',
+            'Content-Type': 'application/json',
+            Cookie: `x-supplier-id-external=${x_supplier_id_external}; x-supplier-id=${x_supplier_id_external}; external-locale=ru; locale=ru; WILDAUTHNEW_V3=CDF1816DDB7121CBB8B23B117E220706677F7499F34516CCB5695332577698E9C35724D3C023D218206D1A306B0BB5183E7A97675E4178DDED933C0A7B1266457EB6D5EE75E66A10DF492E44348EF2E7042675E6EE09E96555262B229B684DE1796C1211BED57857449F5363700CB0188455925AF395509C422DD84A75C03B097EDC0DFF67D4A0EFA65CB240C3A197C476F0E4CD3E85B1A3400F3C4241DF5A9A102EFE04A06601ED723A6DF50974371C3EFFDAF89E2FA0AA57C08133534C89C11C3D4F90B5699C44385711BAA5249D1684CD0AC40016D13427B9AC1F1FF037FB984BF00176712CAE9303B5BAB2159A766068375C5B7A86C33362F2025F6EA5748871587992AA32DEA869ECC1E3678CE9F62ACAB1C7ED3297ECB941E26D0E98A03B1F7A998F2FA049A92E30C3922037E19B31FA34; ___wbu=2e04d715-bc4d-47eb-949c-6fafd20912e1.1691390948; BasketUID=1fea3e5e-1d5d-46e0-b624-ca4dcdec442c; _wbauid=438099561691390947; _wbauid=9731958981691066271; WBToken=AvWInTmiibvMDKLXxOoMQpFcaEWYBj3ss9bMaUzkkv4iQcnHqeBgzgnByUGri_aIo6tAGaa7Ch1GlUurzMOd29Qx2Mg6jwCaYf3dUpqZDfon2Q`,
+            // Host: ' seller.wildberries.ru',
+            Referer:
+              'https://seller.wildberries.ru/analytics/turnover-dynamics',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5.2 Safari/605.1.15',
+          },
+        },
+      );
+      return turnover;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.log(error.message);
+      }
+    }
+  }
 
   async getCardDetail(nmId: number) {
     try {
