@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { WbService } from './wb.service';
 import { AdvertStatDto } from './dto/advert-stat.dto';
+import { GetTurnoverDto } from './dto/get-turnover.dto';
 
 @Controller('wb')
 export class WbController {
@@ -14,5 +15,10 @@ export class WbController {
   @Post('advert-stat')
   async getAdvertStat(@Body() dto: AdvertStatDto) {
     return await this.wbService.getAdvertStat(dto);
+  }
+
+  @Post('get-turnover')
+  async getTurnover(@Body() dto: GetTurnoverDto) {
+    return await this.wbService.getTurnover(dto);
   }
 }
