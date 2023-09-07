@@ -57,7 +57,9 @@ export class WbService {
       endDate,
     );
     return {
-      turnover: turnoverData.data.turnoverReportDailyDynamicsTable,
+      turnover: turnoverData.data.turnoverReportDailyDynamicsTable.map(
+        (item) => ({ ...item, date: item.date.split('T')[0] }),
+      ),
     };
   }
 
