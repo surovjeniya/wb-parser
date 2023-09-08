@@ -7,9 +7,25 @@ import {
 } from '@nestjs/common';
 import { ICardDetail } from '../interface/get-card-detail.interface';
 import { ITurnover } from '../interface/get-turnover.interface';
+import { ICardRating } from '../interface/get-card-rating.interface';
+import { GetCardWbRatingDto } from '../dto/get-card-wb-rating.dto';
 
 class WbAPi {
   private counter = 0;
+
+  async getCardRating(dto: GetCardWbRatingDto) {
+    try {
+      const { data: cardRating } = await axios.post<ICardRating>(
+        'https://card-rating.wildberries.ru/api/v2/rating/cards',
+        dto,
+      );
+      return cardRating;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.log(error.message);
+      }
+    }
+  }
 
   async getTurnover(
     x_supplier_id_external: string,

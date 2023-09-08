@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { WbService } from './wb.service';
 import { AdvertStatDto } from './dto/advert-stat.dto';
 import { GetTurnoverDto } from './dto/get-turnover.dto';
+import { GetCardWbRatingDto } from './dto/get-card-wb-rating.dto';
 
 @Controller('wb')
 export class WbController {
@@ -20,5 +21,10 @@ export class WbController {
   @Post('get-turnover')
   async getTurnover(@Body() dto: GetTurnoverDto) {
     return await this.wbService.getTurnover(dto);
+  }
+
+  @Post('get-card-wb-rating')
+  async getCardWbRating(@Body() dto: GetCardWbRatingDto) {
+    return await this.wbService.getCardWbRatingDto(dto);
   }
 }
