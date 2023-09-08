@@ -8,10 +8,14 @@ import { wbApiInstance } from './utils/wb-api';
 import { WB_MANAGER_TOKEN, WB_MANAGER_UID } from './constant/shops-ids.contant';
 import { getBoostersData } from './utils/get-booster-by-article.utils';
 import { GetTurnoverDto } from './dto/get-turnover.dto';
-import { combineLatest } from 'rxjs';
+import { GetCardWbRatingDto } from './dto/get-card-wb-rating.dto';
 
 @Injectable()
 export class WbService {
+  async getCardWbRatingDto(dto: GetCardWbRatingDto) {
+    return await wbApiInstance.getCardRating(dto);
+  }
+
   async getCardRating(nmId: number) {
     const details = await wbApiInstance.getCardDetail(nmId);
 
